@@ -22,7 +22,6 @@
         <p class="subtitle">Dashboard first. Danach getrennte Seiten fuer Strain-Uebersicht und Profile.</p>
       </div>
       <div class="hero-actions">
-        <button class="ghost-btn" id="installBtn" disabled>PWA installieren</button>
         <button class="primary-btn" id="importBtn">Text importieren</button>
         <button class="primary-btn" id="addStrainBtn">Neuen Strain</button>
       </div>
@@ -34,8 +33,13 @@
           <h2>Dashboard</h2>
           <span id="strainCount" class="counter">0 Strains</span>
         </div>
-        <section class="toolbar">
+        <section class="search-row">
           <input id="searchInput" type="search" placeholder="Strain suchen...">
+          <button type="button" id="toggleFilterBtn" class="ghost-btn icon-btn" aria-label="Filter anzeigen">
+            <span class="material-symbols-outlined">tune</span>
+          </button>
+        </section>
+        <section id="filterPanel" class="toolbar is-hidden">
           <select id="manufacturerFilter"></select>
           <select id="effectFilter"></select>
           <select id="medicalFilter"></select>
@@ -46,20 +50,20 @@
         </section>
       </section>
 
-      <section id="analyticsView" data-view="analytics" class="page-view is-hidden">
+      <section id="strainsView" data-view="strains" class="page-view" hidden>
         <div class="page-head">
-          <h2>Analytics</h2>
-          <p>Uebersicht aller gefilterten Strains</p>
+          <h2>Strains</h2>
+          <p>Gesamte Uebersicht aller gespeicherten Strains</p>
         </div>
         <section class="panel">
           <div id="strainGrid" class="strain-grid"></div>
         </section>
       </section>
 
-      <section id="settingsView" data-view="settings" class="page-view is-hidden">
+      <section id="profileView" data-view="profile" class="page-view" hidden>
         <div class="page-head">
-          <h2>Settings</h2>
-          <p>Profilansicht + Gemini Import Einstellungen</p>
+          <h2>Profile</h2>
+          <p>Detailansicht eines ausgewaehlten Strains</p>
         </div>
 
         <aside id="profilePanel" class="panel profile-column"></aside>
@@ -84,13 +88,13 @@
         <span class="material-symbols-outlined">home</span>
         <span>Dashboard</span>
       </button>
-      <button type="button" class="nav-btn" data-nav-view="analytics">
-        <span class="material-symbols-outlined">bar_chart</span>
-        <span>Analytics</span>
+      <button type="button" class="nav-btn" data-nav-view="strains">
+        <span class="material-symbols-outlined">deployed_code</span>
+        <span>Strains</span>
       </button>
-      <button type="button" class="nav-btn" data-nav-view="settings">
-        <span class="material-symbols-outlined">settings</span>
-        <span>Settings</span>
+      <button type="button" class="nav-btn" data-nav-view="profile">
+        <span class="material-symbols-outlined">person</span>
+        <span>Profile</span>
       </button>
     </nav>
   </div>

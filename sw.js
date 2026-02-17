@@ -1,4 +1,4 @@
-const CACHE_NAME = "strain-index-v2-cache-2";
+const CACHE_NAME = "strain-index-v2-cache-3";
 const ASSETS = [
   "./",
   "./index.html",

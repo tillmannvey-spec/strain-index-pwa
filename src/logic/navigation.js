@@ -1,4 +1,4 @@
-export const VIEWS = ["dashboard", "analytics", "settings"];
+export const VIEWS = ["dashboard", "strains", "profile"];
 export const DEFAULT_VIEW = "dashboard";
 
 function normalize(raw) {

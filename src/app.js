@@ -20,20 +20,21 @@ const state = {
 
 const dom = {
   dashboardView: document.querySelector("#dashboardView"),
-  analyticsView: document.querySelector("#analyticsView"),
-  settingsView: document.querySelector("#settingsView"),
+  strainsView: document.querySelector("#strainsView"),
+  profileView: document.querySelector("#profileView"),
   navButtons: Array.from(document.querySelectorAll("[data-nav-view]")),
   dashboardGrid: document.querySelector("#dashboardGrid"),
   grid: document.querySelector("#strainGrid"),
   profile: document.querySelector("#profilePanel"),
   search: document.querySelector("#searchInput"),
+  toggleFilter: document.querySelector("#toggleFilterBtn"),
+  filterPanel: document.querySelector("#filterPanel"),
   manufacturer: document.querySelector("#manufacturerFilter"),
   effect: document.querySelector("#effectFilter"),
   medical: document.querySelector("#medicalFilter"),
   count: document.querySelector("#strainCount"),
   addButton: document.querySelector("#addStrainBtn"),
   importButton: document.querySelector("#importBtn"),
-  installButton: document.querySelector("#installBtn"),
   strainDialog: document.querySelector("#strainDialog"),
   importDialog: document.querySelector("#importDialog"),
   strainForm: document.querySelector("#strainForm"),
@@ -51,8 +52,6 @@ const dom = {
   settingsEndpoint: document.querySelector("#settingsEndpoint"),
   importStatus: document.querySelector("#importStatus")
 };
-
-let deferredInstallPrompt = null;
 
 function normalizeArray(value) {
   if (Array.isArray(value)) {
@@ -189,17 +188,16 @@ function renderCard(strain, isActive) {
 function renderDashboard() {
   const filtered = currentFilteredStrains();
   dom.count.textContent = `${filtered.length} Strains`;
-  const preview = filtered.slice(0, 4);
-  if (!preview.length) {
+  if (!filtered.length) {
     dom.dashboardGrid.innerHTML = `<p class="empty-state">Keine Treffer. Passe Filter oder Suche an.</p>`;
     return;
   }
-  dom.dashboardGrid.innerHTML = preview
+  dom.dashboardGrid.innerHTML = filtered
     .map((strain) => renderCard(strain, strain.id === state.selectedId))
     .join("");
 }
 
-function renderAnalytics() {
+function renderStrains() {
   const filtered = currentFilteredStrains();
   if (!filtered.length) {
     dom.grid.innerHTML = `<p class="empty-state">Keine Treffer. Passe Filter oder Suche an.</p>`;
@@ -242,7 +240,7 @@ function renderProfile() {
     dom.profile.innerHTML = `
       <div class="profile-placeholder">
         <h2>Profilansicht</h2>
-        <p>Waehle im Dashboard oder in Analytics einen Strain aus.</p>
+        <p>Waehle im Dashboard oder in Strains einen Strain aus.</p>
       </div>
     `;
     return;
@@ -297,12 +295,12 @@ function renderProfile() {
 function renderView() {
   const sections = {
     dashboard: dom.dashboardView,
-    analytics: dom.analyticsView,
-    settings: dom.settingsView
+    strains: dom.strainsView,
+    profile: dom.profileView
   };
 
   Object.entries(sections).forEach(([name, section]) => {
-    section.classList.toggle("is-hidden", name !== state.currentView);
+    section.hidden = name !== state.currentView;
   });
 
   dom.navButtons.forEach((button) => {
@@ -326,7 +324,7 @@ function setView(view, updateHash = true) {
 function renderAll() {
   renderFilterOptions();
   renderDashboard();
-  renderAnalytics();
+  renderStrains();
   renderProfile();
   renderView();
 }
@@ -484,29 +482,33 @@ function handleCardSelection(event) {
   }
   state.selectedId = card.dataset.id;
   renderAll();
-  setView("settings");
+  setView("profile");
 }
 
 function wireEvents() {
   dom.search.addEventListener("input", (event) => {
     state.filters.search = event.target.value;
     renderDashboard();
-    renderAnalytics();
+    renderStrains();
   });
   dom.manufacturer.addEventListener("change", (event) => {
     state.filters.manufacturer = event.target.value;
     renderDashboard();
-    renderAnalytics();
+    renderStrains();
   });
   dom.effect.addEventListener("change", (event) => {
     state.filters.effect = event.target.value;
     renderDashboard();
-    renderAnalytics();
+    renderStrains();
   });
   dom.medical.addEventListener("change", (event) => {
     state.filters.medical = event.target.value;
     renderDashboard();
-    renderAnalytics();
+    renderStrains();
+  });
+
+  dom.toggleFilter.addEventListener("click", () => {
+    dom.filterPanel.classList.toggle("is-hidden");
   });
 
   dom.dashboardGrid.addEventListener("click", handleCardSelection);
@@ -587,7 +589,7 @@ function wireEvents() {
     state.selectedId = savedId;
     closeDialog(dom.strainDialog);
     renderAll();
-    setView("settings");
+    setView("profile");
   });
 
   dom.importForm.addEventListener("submit", handleImport);
@@ -619,24 +621,6 @@ function renderSettings() {
   dom.settingsEndpoint.value = state.settings.endpoint || "https://generativelanguage.googleapis.com/v1beta";
 }
 
-function setupPwaInstall() {
-  window.addEventListener("beforeinstallprompt", (event) => {
-    event.preventDefault();
-    deferredInstallPrompt = event;
-    dom.installButton.disabled = false;
-  });
-
-  dom.installButton.addEventListener("click", async () => {
-    if (!deferredInstallPrompt) {
-      return;
-    }
-    deferredInstallPrompt.prompt();
-    await deferredInstallPrompt.userChoice;
-    deferredInstallPrompt = null;
-    dom.installButton.disabled = true;
-  });
-}
-
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(() => {
@@ -656,7 +640,6 @@ function init() {
   } else {
     renderView();
   }
-  setupPwaInstall();
   registerServiceWorker();
 }
 
