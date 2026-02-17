@@ -1,4 +1,4 @@
-const CACHE_NAME = "strain-index-v2-cache-1";
+const CACHE_NAME = "strain-index-v2-cache-2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -8,6 +8,7 @@ const ASSETS = [
   "./src/storage.js",
   "./src/llm.js",
   "./src/logic/filter.js",
+  "./src/logic/navigation.js",
   "./src/logic/parse.js",
   "./icons/icon-192.svg",
   "./icons/icon-512.svg"

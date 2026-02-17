@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Sora:wght@500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -18,7 +19,7 @@
       <div>
         <p class="eyebrow">Personal PWA</p>
         <h1>Medical Cannabis Strain Index</h1>
-        <p class="subtitle">Lokale Datenbank mit Profilen, Filtern und Text-Import.</p>
+        <p class="subtitle">Dashboard first. Danach getrennte Seiten fuer Strain-Uebersicht und Profile.</p>
       </div>
       <div class="hero-actions">
         <button class="ghost-btn" id="installBtn" disabled>PWA installieren</button>
@@ -27,20 +28,71 @@
       </div>
     </header>
 
-    <section class="toolbar">
-      <input id="searchInput" type="search" placeholder="Strain suchen...">
-      <select id="manufacturerFilter"></select>
-      <select id="effectFilter"></select>
-      <select id="medicalFilter"></select>
-      <span id="strainCount" class="counter">0 Strains</span>
-    </section>
-
-    <main class="main-layout">
-      <section class="list-column">
-        <div id="strainGrid" class="strain-grid"></div>
+    <main class="mobile-pages">
+      <section id="dashboardView" data-view="dashboard" class="page-view">
+        <div class="page-head">
+          <h2>Dashboard</h2>
+          <span id="strainCount" class="counter">0 Strains</span>
+        </div>
+        <section class="toolbar">
+          <input id="searchInput" type="search" placeholder="Strain suchen...">
+          <select id="manufacturerFilter"></select>
+          <select id="effectFilter"></select>
+          <select id="medicalFilter"></select>
+        </section>
+        <section class="panel">
+          <h3>Aktuelle Treffer</h3>
+          <div id="dashboardGrid" class="strain-grid"></div>
+        </section>
       </section>
-      <aside id="profilePanel" class="profile-column"></aside>
+
+      <section id="analyticsView" data-view="analytics" class="page-view is-hidden">
+        <div class="page-head">
+          <h2>Analytics</h2>
+          <p>Uebersicht aller gefilterten Strains</p>
+        </div>
+        <section class="panel">
+          <div id="strainGrid" class="strain-grid"></div>
+        </section>
+      </section>
+
+      <section id="settingsView" data-view="settings" class="page-view is-hidden">
+        <div class="page-head">
+          <h2>Settings</h2>
+          <p>Profilansicht + Gemini Import Einstellungen</p>
+        </div>
+
+        <aside id="profilePanel" class="panel profile-column"></aside>
+
+        <section class="panel settings-box">
+          <h3>Gemini Import</h3>
+          <label class="checkbox-row">
+            <input type="checkbox" id="settingsUseLlm">
+            <span>Gemini fuer automatische Zuordnung nutzen</span>
+          </label>
+          <label>API Key<input id="settingsApiKey" type="password" placeholder="AIza..."></label>
+          <label>Model<input id="settingsModel" type="text" placeholder="gemini-3-flash-preview"></label>
+          <label>Endpoint<input id="settingsEndpoint" type="url" placeholder="https://generativelanguage.googleapis.com/v1beta"></label>
+          <button type="button" class="ghost-btn small" id="saveSettingsBtn">Import-Einstellungen speichern</button>
+          <p id="importStatus" class="status-line"></p>
+        </section>
+      </section>
     </main>
+
+    <nav class="bottom-nav">
+      <button type="button" class="nav-btn active" data-nav-view="dashboard">
+        <span class="material-symbols-outlined">home</span>
+        <span>Dashboard</span>
+      </button>
+      <button type="button" class="nav-btn" data-nav-view="analytics">
+        <span class="material-symbols-outlined">bar_chart</span>
+        <span>Analytics</span>
+      </button>
+      <button type="button" class="nav-btn" data-nav-view="settings">
+        <span class="material-symbols-outlined">settings</span>
+        <span>Settings</span>
+      </button>
+    </nav>
   </div>
 
   <dialog id="strainDialog" class="modal">
@@ -93,26 +145,9 @@
         <h2>Strain importieren</h2>
         <button type="button" class="ghost-btn small" data-close-dialog>Schliessen</button>
       </header>
-
       <label>Import-Text
-        <textarea id="importText" name="importText" rows="14" placeholder="Hier den Strain-Text einfuegen..."></textarea>
+        <textarea id="importText" name="importText" rows="14" placeholder="Freitext oder strukturierter Text..."></textarea>
       </label>
-      <button type="button" class="ghost-btn small" id="useTemplateBtn">Schema-Template einfuegen</button>
-
-      <section class="settings-box">
-        <h3>Gemini Import (optional)</h3>
-        <label class="checkbox-row">
-          <input type="checkbox" id="settingsUseLlm">
-          <span>Gemini fuer automatische Zuordnung nutzen</span>
-        </label>
-        <label>API Key<input id="settingsApiKey" type="password" placeholder="AIza..."></label>
-        <label>Model<input id="settingsModel" type="text" placeholder="gemini-3-flash-preview"></label>
-        <label>Endpoint<input id="settingsEndpoint" type="url" placeholder="https://generativelanguage.googleapis.com/v1beta"></label>
-        <button type="button" class="ghost-btn small" id="saveSettingsBtn">Import-Einstellungen speichern</button>
-      </section>
-
-      <p id="importStatus" class="status-line"></p>
-
       <footer class="modal-footer">
         <button type="button" class="ghost-btn" data-close-dialog>Abbrechen</button>
         <button type="submit" class="primary-btn">Text analysieren</button>

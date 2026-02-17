@@ -52,7 +52,7 @@ const SEED_STRAINS = [
 ];
 
 const DEFAULT_SETTINGS = {
-  useLlmImport: false,
+  useLlmImport: true,
   apiKey: "",
   model: "gemini-3-flash-preview",
   endpoint: "https://generativelanguage.googleapis.com/v1beta"

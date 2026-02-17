@@ -14,7 +14,7 @@ Persoenliche, lokale PWA fuer Medical-Cannabis-Strain-Profile.
 - Profilfelder fuer Steckbrief, Terpene, Wirkungen, Aroma, medizinische Anwendungen, Community-Feedback
 - Profilbild-Upload (lokal in Browser-Speicher)
 - Dashboard-Filter (Hersteller, Wirkung, medizinische Wirkung) + Suche
-- Text-Import mit festem Schema-Template + Validierung
+- Text-Import aus freiem oder strukturiertem Text
 - Optionaler LLM-Import mit Gemini API (AI Studio)
 - Offline-Unterstuetzung via Service Worker
 

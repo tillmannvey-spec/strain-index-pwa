@@ -1,11 +1,19 @@
 const SYSTEM_PROMPT = `
-Extrahiere aus dem Eingabetext ein JSON-Objekt fuer ein Medical-Cannabis-Strain-Profil.
-Nutze exakt diese Felder:
-name, manufacturer, genetics, thc, cbd, cultivation, terpenes, effects, aromaFlavor, overallEffect, onsetDuration, characteristic, medicalApplications, communityFeedback, notes.
-terpenes ist ein Array aus Objekten: {name, amount, effects[]}.
-effects, aromaFlavor, medicalApplications und terpene.effects sind Arrays von Strings.
-Wenn etwas fehlt, nutze leere Strings oder leere Arrays.
-Antworte nur mit JSON.
+Du bist ein Information-Extractor fuer Medical-Cannabis-Strain-Profile.
+Analysiere den Nutzertext auch dann, wenn er frei geschrieben, unsortiert oder ohne feste Labels ist.
+Nutze dein Textverstaendnis und ordne Informationen semantisch den Zielfeldern zu.
+
+Ziel: Gib genau EIN JSON-Objekt mit diesen Feldern zurueck:
+name, manufacturer, genetics, thc, cbd, cultivation, terpenes, effects, aromaFlavor, overallEffect, onsetDuration, characteristic, medicalApplications, communityFeedback, notes
+
+Regeln:
+- terpenes ist ein Array von Objekten: {name, amount, effects}
+- effects, aromaFlavor, medicalApplications und terpene.effects sind Arrays von Strings
+- Wenn Feld unbekannt: leerer String oder leeres Array
+- Nicht halluzinieren: nur Informationen aus dem Text oder klare semantische Schlussfolgerungen
+- Prozentangaben/Einheiten so nah wie moeglich am Originaltext beibehalten
+- Du darfst Synonyme mappen (z.B. Produzent=manufacturer, Wirkung=effects, medizinische Nutzung=medicalApplications)
+- Antworte nur mit JSON ohne Erklaerung
 `.trim();
 
 function buildGeminiUrl(settings) {
@@ -34,6 +42,69 @@ function stripCodeFence(text) {
     return fenced[1].trim();
   }
   return trimmed;
+}
+
+function extractFirstJsonObject(text) {
+  const source = String(text || "");
+  const start = source.indexOf("{");
+  if (start < 0) {
+    return "";
+  }
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let index = start; index < source.length; index += 1) {
+    const char = source[index];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (char === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (char === "\"") {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === "\"") {
+      inString = true;
+      continue;
+    }
+
+    if (char === "{") {
+      depth += 1;
+      continue;
+    }
+
+    if (char === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        return source.slice(start, index + 1);
+      }
+    }
+  }
+
+  return "";
+}
+
+export function parseLlmJson(text) {
+  const cleaned = stripCodeFence(text);
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const extracted = extractFirstJsonObject(cleaned);
+    if (!extracted) {
+      throw new Error("Kein JSON-Objekt in der Modellantwort gefunden.");
+    }
+    return JSON.parse(extracted);
+  }
 }
 
 export async function parseWithLlm(importText, settings) {
@@ -76,7 +147,7 @@ export async function parseWithLlm(importText, settings) {
   }
 
   try {
-    return JSON.parse(stripCodeFence(text));
+    return parseLlmJson(text);
   } catch (error) {
     throw new Error(`Gemini-JSON ungueltig: ${error.message}`);
   }
