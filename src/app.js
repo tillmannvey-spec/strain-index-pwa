@@ -158,6 +158,11 @@ function renderFilterOptions() {
   setOptions(dom.medical, uniqueValues(state.strains, "medicalApplications"), "Alle medizinischen Wirkungen");
 }
 
+function setFilterPanelVisible(visible) {
+  dom.filterPanel.hidden = !visible;
+  dom.toggleFilter.setAttribute("aria-expanded", visible ? "true" : "false");
+}
+
 function currentFilteredStrains() {
   return filterStrains(state.strains, state.filters);
 }
@@ -508,7 +513,7 @@ function wireEvents() {
   });
 
   dom.toggleFilter.addEventListener("click", () => {
-    dom.filterPanel.classList.toggle("is-hidden");
+    setFilterPanelVisible(dom.filterPanel.hidden);
   });
 
   dom.dashboardGrid.addEventListener("click", handleCardSelection);
@@ -632,6 +637,7 @@ function registerServiceWorker() {
 function init() {
   wireEvents();
   renderSettings();
+  setFilterPanelVisible(false);
   state.selectedId = state.strains[0]?.id || null;
   state.currentView = resolveViewFromHash(window.location.hash);
   renderAll();

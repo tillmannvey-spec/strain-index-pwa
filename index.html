@@ -35,11 +35,11 @@
         </div>
         <section class="search-row">
           <input id="searchInput" type="search" placeholder="Strain suchen...">
-          <button type="button" id="toggleFilterBtn" class="ghost-btn icon-btn" aria-label="Filter anzeigen">
+          <button type="button" id="toggleFilterBtn" class="ghost-btn icon-btn" aria-label="Filter anzeigen" aria-expanded="false">
             <span class="material-symbols-outlined">tune</span>
           </button>
         </section>
-        <section id="filterPanel" class="toolbar is-hidden">
+        <section id="filterPanel" class="toolbar" hidden>
           <select id="manufacturerFilter"></select>
           <select id="effectFilter"></select>
           <select id="medicalFilter"></select>
