@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Strain Detailed Profile</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<!-- Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#19e619",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#112111",
+                        "surface-dark": "#1a2e1a", 
+                        "surface-darker": "#0d1a0d",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar hiding for clean UI */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display min-h-screen flex justify-center text-slate-900 dark:text-white">
+<div class="relative w-full max-w-md mx-auto bg-background-light dark:bg-background-dark min-h-screen flex flex-col pb-24 shadow-2xl overflow-hidden">
+<!-- Top App Bar -->
+<header class="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 transition">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div class="flex gap-3">
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 transition">
+<span class="material-symbols-outlined">share</span>
+</button>
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-primary hover:bg-black/40 transition">
+<span class="material-symbols-outlined fill-1">favorite</span>
+</button>
+</div>
+</header>
+<!-- Hero Section -->
+<div class="relative w-full h-80 shrink-0">
+<div class="w-full h-full bg-cover bg-center" data-alt="Close up macro shot of purple cannabis flower trichomes" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAHgM7GllmUCg9z8hXw8nRUsmwUGYLEB-ON_ouvChvIfQo9Y6unJc_aQd62Xp37gaD0zI35hUNBO897eGFl2FODIBFsqq1rcmnwm3c78s4INAMFS3ctSObZvIeETTagALpk8oa8asZBmSTSJ5faAXat8PhU0G_O2660N1oDrRgupqWpFMxu2Gi9oxYqg3yGik3-eR2JNmx3slLwHa8G_O2sdmaUH5pu28AiDzkZdynT_SHdRdnzH42liz7i43P5Emw0iyo12a88XXk');"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark via-background-dark/60 to-transparent"></div>
+<div class="absolute bottom-0 left-0 right-0 p-6">
+<div class="flex items-center gap-2 mb-2">
+<span class="px-2 py-0.5 rounded text-xs font-bold bg-primary text-black uppercase tracking-wider">Indica Dominant</span>
+<span class="flex items-center gap-1 text-xs font-medium text-white/80">
+<span class="material-symbols-outlined text-[14px] text-primary">verified</span> Verified Strain
+                    </span>
+</div>
+<h1 class="text-4xl font-extrabold tracking-tight text-white mb-1">Purple Kush</h1>
+<p class="text-lg text-gray-300 font-medium flex items-center gap-1">
+                    by <span class="text-primary font-bold">Pure Sunfarms</span>
+</p>
+</div>
+</div>
+<!-- Quick Stats Row -->
+<div class="px-6 py-2 overflow-x-auto no-scrollbar flex gap-3 -mt-4 relative z-10">
+<div class="flex flex-col items-center justify-center min-w-[80px] h-20 bg-surface-dark border border-white/5 rounded-xl shadow-lg backdrop-blur-sm">
+<span class="text-xs text-gray-400 font-medium uppercase tracking-wide">THC</span>
+<span class="text-xl font-bold text-white">22%</span>
+</div>
+<div class="flex flex-col items-center justify-center min-w-[80px] h-20 bg-surface-dark border border-white/5 rounded-xl shadow-lg backdrop-blur-sm">
+<span class="text-xs text-gray-400 font-medium uppercase tracking-wide">CBD</span>
+<span class="text-xl font-bold text-white">&lt;1%</span>
+</div>
+<div class="flex flex-col items-center justify-center min-w-[80px] h-20 bg-surface-dark border border-white/5 rounded-xl shadow-lg backdrop-blur-sm">
+<span class="text-xs text-gray-400 font-medium uppercase tracking-wide">Type</span>
+<span class="text-xl font-bold text-white">Flower</span>
+</div>
+<div class="flex flex-col items-center justify-center min-w-[80px] h-20 bg-surface-dark border border-white/5 rounded-xl shadow-lg backdrop-blur-sm">
+<span class="text-xs text-gray-400 font-medium uppercase tracking-wide">Rating</span>
+<div class="flex items-center gap-1">
+<span class="text-xl font-bold text-white">4.8</span>
+<span class="material-symbols-outlined text-sm text-yellow-400 fill-1">star</span>
+</div>
+</div>
+</div>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+<!-- Genetics Dropdown (Profile) -->
+<section>
+<details class="group bg-surface-dark border border-white/5 rounded-xl overflow-hidden transition-all duration-300 open:bg-surface-darker">
+<summary class="flex cursor-pointer items-center justify-between p-4 select-none">
+<div class="flex items-center gap-3">
+<div class="bg-primary/20 p-2 rounded-lg text-primary">
+<span class="material-symbols-outlined">biotech</span>
+</div>
+<h3 class="font-bold text-white text-base">Genetics Profile</h3>
+</div>
+<span class="material-symbols-outlined text-gray-400 group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<div class="px-4 pb-4 pt-0 border-t border-white/5">
+<div class="mt-4 flex flex-col gap-4">
+<div class="flex justify-between items-center pb-2 border-b border-white/5">
+<span class="text-sm text-gray-400">Lineage</span>
+<span class="text-sm font-medium text-primary text-right">Hindu Kush x Purple Afghani</span>
+</div>
+<div class="flex justify-between items-center pb-2 border-b border-white/5">
+<span class="text-sm text-gray-400">Breeder</span>
+<span class="text-sm font-medium text-white">Landrace</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-sm text-gray-400">Phenotype</span>
+<span class="text-sm font-medium text-white">Purple #4</span>
+</div>
+</div>
+</div>
+</details>
+</section>
+<!-- Terpene Profile -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-bold text-lg text-white">Terpene Profile</h3>
+<span class="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded">2.4% Total</span>
+</div>
+<div class="bg-surface-dark rounded-xl p-5 border border-white/5 space-y-5">
+<!-- Terpene 1 -->
+<div class="space-y-1">
+<div class="flex justify-between items-end">
+<div class="flex flex-col">
+<span class="font-bold text-white text-sm">Myrcene</span>
+<span class="text-xs text-gray-400">Sedative • Relaxing</span>
+</div>
+<span class="text-sm font-mono text-primary">0.8%</span>
+</div>
+<div class="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[70%] rounded-full"></div>
+</div>
+</div>
+<!-- Terpene 2 -->
+<div class="space-y-1">
+<div class="flex justify-between items-end">
+<div class="flex flex-col">
+<span class="font-bold text-white text-sm">Caryophyllene</span>
+<span class="text-xs text-gray-400">Spicy • Anti-inflammatory</span>
+</div>
+<span class="text-sm font-mono text-primary">0.5%</span>
+</div>
+<div class="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
+<div class="h-full bg-primary/70 w-[45%] rounded-full"></div>
+</div>
+</div>
+<!-- Terpene 3 -->
+<div class="space-y-1">
+<div class="flex justify-between items-end">
+<div class="flex flex-col">
+<span class="font-bold text-white text-sm">Linalool</span>
+<span class="text-xs text-gray-400">Floral • Calming</span>
+</div>
+<span class="text-sm font-mono text-primary">0.3%</span>
+</div>
+<div class="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
+<div class="h-full bg-primary/40 w-[30%] rounded-full"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Effects & Flavor Grid -->
+<section>
+<h3 class="font-bold text-lg text-white mb-4">Effects &amp; Flavor</h3>
+<div class="grid grid-cols-2 gap-3">
+<div class="bg-surface-dark p-4 rounded-xl border border-white/5 flex flex-col gap-2">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined">timer</span>
+<span class="text-xs font-bold uppercase tracking-wide">Onset</span>
+</div>
+<p class="text-white font-medium">Fast (&lt; 5 min)</p>
+</div>
+<div class="bg-surface-dark p-4 rounded-xl border border-white/5 flex flex-col gap-2">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined">schedule</span>
+<span class="text-xs font-bold uppercase tracking-wide">Duration</span>
+</div>
+<p class="text-white font-medium">Long (3-4 hrs)</p>
+</div>
+<div class="bg-surface-dark p-4 rounded-xl border border-white/5 col-span-2 flex flex-col gap-2">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined">fragrance</span>
+<span class="text-xs font-bold uppercase tracking-wide">Aroma &amp; Taste</span>
+</div>
+<div class="flex gap-2 flex-wrap mt-1">
+<span class="px-3 py-1 bg-white/5 rounded-full text-xs font-medium text-gray-300">Grape</span>
+<span class="px-3 py-1 bg-white/5 rounded-full text-xs font-medium text-gray-300">Earthy</span>
+<span class="px-3 py-1 bg-white/5 rounded-full text-xs font-medium text-gray-300">Spice</span>
+<span class="px-3 py-1 bg-white/5 rounded-full text-xs font-medium text-gray-300">Sweet</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Medical Applications -->
+<section>
+<h3 class="font-bold text-lg text-white mb-4">Medical Applications</h3>
+<div class="flex flex-wrap gap-2">
+<span class="px-4 py-2 rounded-lg border border-primary/30 text-primary bg-primary/5 text-sm font-medium cursor-pointer hover:bg-primary/10 transition">Chronic Pain</span>
+<span class="px-4 py-2 rounded-lg border border-primary/30 text-primary bg-primary/5 text-sm font-medium cursor-pointer hover:bg-primary/10 transition">Insomnia</span>
+<span class="px-4 py-2 rounded-lg border border-primary/30 text-primary bg-primary/5 text-sm font-medium cursor-pointer hover:bg-primary/10 transition">Muscle Spasms</span>
+<span class="px-4 py-2 rounded-lg border border-primary/30 text-primary bg-primary/5 text-sm font-medium cursor-pointer hover:bg-primary/10 transition">Stress</span>
+<span class="px-4 py-2 rounded-lg border border-white/10 text-gray-400 bg-white/5 text-sm font-medium cursor-pointer hover:bg-white/10 transition opacity-60">Anxiety</span>
+</div>
+</section>
+<!-- Cultivation (Accordion) -->
+<section>
+<details class="group bg-surface-dark border border-white/5 rounded-xl overflow-hidden transition-all duration-300">
+<summary class="flex cursor-pointer items-center justify-between p-4 select-none">
+<div class="flex items-center gap-3">
+<div class="bg-primary/20 p-2 rounded-lg text-primary">
+<span class="material-symbols-outlined">potted_plant</span>
+</div>
+<h3 class="font-bold text-white text-base">Cultivation Details</h3>
+</div>
+<span class="material-symbols-outlined text-gray-400 group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<div class="px-4 pb-4 pt-0 border-t border-white/5">
+<ul class="mt-4 space-y-3">
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-gray-500 text-sm mt-0.5">location_on</span>
+<div class="flex flex-col">
+<span class="text-xs text-gray-400 uppercase">Origin</span>
+<span class="text-sm text-white">British Columbia, Canada</span>
+</div>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-gray-500 text-sm mt-0.5">wb_sunny</span>
+<div class="flex flex-col">
+<span class="text-xs text-gray-400 uppercase">Method</span>
+<span class="text-sm text-white">Hybrid-Greenhouse</span>
+</div>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-gray-500 text-sm mt-0.5">science</span>
+<div class="flex flex-col">
+<span class="text-xs text-gray-400 uppercase">Processing</span>
+<span class="text-sm text-white">Non-Irradiated, Hand-Trimmed</span>
+</div>
+</li>
+</ul>
+</div>
+</details>
+</section>
+<!-- Community Feedback -->
+<section class="pb-8">
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-bold text-lg text-white">Community Feedback</h3>
+<a class="text-primary text-sm font-medium hover:underline" href="#">See all</a>
+</div>
+<div class="bg-surface-dark p-5 rounded-xl border border-white/5">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-10 h-10 rounded-full bg-gray-600 overflow-hidden">
+<img alt="User avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBtr7em-eDojth5ohWjsROL0e1OUcKxtC2fWOwjc3c9fH07yVsN-ny1XYmCbDfFw8LiepWFrBxjIppiYbkhKZfydus7uTYjoOhkCaU58XTOA6mM23uWy4H-9IAKhtgzJ3vpBU1MhmOAzx2WUE1W5AdgMM3JeMQ7ch2bbGAABivIdmFsCErFvTovvrnjS6G1PFsDa_baz0KkEHH4_XSA9aTu5R5UZ41X0OB7L_gZv7jqBWOlSZ00qGouBxumrUTCRw_pwxGp-VI-nTw"/>
+</div>
+<div>
+<p class="text-sm font-bold text-white">J. Doe</p>
+<div class="flex text-yellow-400 text-xs">
+<span class="material-symbols-outlined text-[14px] fill-1">star</span>
+<span class="material-symbols-outlined text-[14px] fill-1">star</span>
+<span class="material-symbols-outlined text-[14px] fill-1">star</span>
+<span class="material-symbols-outlined text-[14px] fill-1">star</span>
+<span class="material-symbols-outlined text-[14px] fill-1">star</span>
+</div>
+</div>
+<span class="ml-auto text-xs text-gray-500">2 days ago</span>
+</div>
+<p class="text-sm text-gray-300 leading-relaxed italic">
+                        "Incredible for night time use. The onset was quick and very relaxing without being too heavy. The grape flavor is definitely noticeable."
+                    </p>
+</div>
+</section>
+</div>
+<!-- Floating Action Button Area -->
+<div class="absolute bottom-6 right-6 z-30">
+<button class="bg-primary hover:bg-green-400 text-black rounded-full h-14 w-14 flex items-center justify-center shadow-lg shadow-green-900/40 transition-transform active:scale-95 group">
+<span class="material-symbols-outlined text-2xl group-hover:rotate-90 transition-transform">add</span>
+</button>
+</div>
+<!-- Bottom Tab Navigation (Optional Context) -->
+<div class="absolute bottom-0 w-full h-16 bg-surface-dark border-t border-white/5 flex items-center justify-around z-20">
+<button class="flex flex-col items-center justify-center gap-1 text-primary">
+<span class="material-symbols-outlined">search</span>
+<span class="text-[10px] font-medium">Strain</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-1 text-gray-500 hover:text-gray-300">
+<span class="material-symbols-outlined">menu_book</span>
+<span class="text-[10px] font-medium">Log</span>
+</button>
+<div class="w-12"></div> <!-- Spacer for FAB -->
+<button class="flex flex-col items-center justify-center gap-1 text-gray-500 hover:text-gray-300">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-[10px] font-medium">Stats</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-1 text-gray-500 hover:text-gray-300">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</button>
+</div>
+</div>
+</body></html>
