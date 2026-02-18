@@ -1,4 +1,4 @@
-const CACHE_NAME = "strain-index-v2-cache-5";
+const CACHE_NAME = "strain-index-v2-cache-6";
 const ASSETS = [
   "./",
   "./index.html",
@@ -35,6 +35,10 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") {
+    return;
+  }
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.pathname.startsWith("/api/")) {
     return;
   }
 

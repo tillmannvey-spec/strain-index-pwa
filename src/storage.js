@@ -1,3 +1,5 @@
+import { buildStrainsDocument, extractStrainsFromDocument } from "./logic/cloud-storage.js";
+
 const STRAINS_KEY = "strain-index-v2:strains";
 const SETTINGS_KEY = "strain-index-v2:settings";
 
@@ -67,7 +69,50 @@ function safeParse(json, fallback) {
   }
 }
 
-export function loadStrains() {
+async function fetchCloudStrains() {
+  const response = await fetch("./api/strains", {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    cache: "no-store"
+  });
+  if (!response.ok) {
+    throw new Error(`Cloud load failed (${response.status})`);
+  }
+  const payload = await response.json();
+  return extractStrainsFromDocument(payload, []);
+}
+
+async function saveCloudStrains(strains) {
+  const response = await fetch("./api/strains", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(buildStrainsDocument(strains))
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Cloud save failed (${response.status}): ${text.slice(0, 180)}`);
+  }
+}
+
+export async function loadStrains() {
+  const local = loadStrainsLocal();
+  try {
+    const cloud = await fetchCloudStrains();
+    if (Array.isArray(cloud) && cloud.length) {
+      localStorage.setItem(STRAINS_KEY, JSON.stringify(cloud));
+      return cloud;
+    }
+    if (local.length) {
+      await saveCloudStrains(local);
+      return local;
+    }
+    return [...SEED_STRAINS];
+  } catch {
+    return local;
+  }
+}
+
+function loadStrainsLocal() {
   const stored = localStorage.getItem(STRAINS_KEY);
   if (!stored) {
     return [...SEED_STRAINS];
@@ -79,8 +124,14 @@ export function loadStrains() {
   return strains;
 }
 
-export function saveStrains(strains) {
+export async function saveStrains(strains) {
   localStorage.setItem(STRAINS_KEY, JSON.stringify(strains));
+  try {
+    await saveCloudStrains(strains);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function loadSettings() {

@@ -6,7 +6,7 @@ import { parseWithLlm, researchStrainsWithLlm } from "./llm.js";
 import { loadSettings, loadStrains, saveSettings, saveStrains } from "./storage.js";
 
 const state = {
-  strains: loadStrains().map(normalizeProfile),
+  strains: [],
   settings: loadSettings(),
   filters: {
     search: "",
@@ -790,7 +790,9 @@ function registerServiceWorker() {
   }
 }
 
-function init() {
+async function init() {
+  const loadedStrains = await loadStrains();
+  state.strains = loadedStrains.map(normalizeProfile);
   wireEvents();
   renderSettings();
   setFilterPanelVisible(false);
