@@ -95,6 +95,8 @@ Empfehlung: Eher für Abendkonsum
   assert.equal(result.cbd, "1%");
   assert.equal(result.cultivation, "Unbestrahlt, kanadisch");
   assert.equal(result.terpenes.length, 4);
+  assert.ok(result.effects.length > 0);
+  assert.ok(result.effects.some((effect) => /entspann/i.test(effect)));
   assert.ok(result.aromaFlavor.includes("Holzig"));
   assert.ok(result.medicalApplications.includes("Schlafstörungen"));
   assert.match(result.communityFeedback, /60% Match/);

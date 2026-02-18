@@ -6,6 +6,26 @@ function splitList(value) {
     .filter(Boolean);
 }
 
+function inferEffectsFromText(text) {
+  const source = String(text || "").toLowerCase();
+  if (!source.trim()) {
+    return [];
+  }
+
+  const patterns = [
+    { pattern: /entspann|beruhig|relax/i, label: "Entspannend" },
+    { pattern: /fokus|konzent|klarheit/i, label: "Fokussiert" },
+    { pattern: /kreativ/i, label: "Kreativ" },
+    { pattern: /euphor/i, label: "Euphorisch" },
+    { pattern: /sedier|schlaf|mued|müd/i, label: "Sedierend" },
+    { pattern: /aktiv|antrieb/i, label: "Aktivierend" },
+    { pattern: /angst|paranoia/i, label: "Angstlösend" },
+    { pattern: /koerper|körper|muskel/i, label: "Körperlich" }
+  ];
+
+  return patterns.filter((item) => item.pattern.test(source)).map((item) => item.label);
+}
+
 function normalizeLabel(label) {
   return String(label || "")
     .toLowerCase()
@@ -258,7 +278,10 @@ export function parseStrainText(text) {
     profile.notes = profile.notes ? `${profile.notes}\n${line}` : line;
   });
 
-  profile.effects = Array.from(new Set(profile.effects));
+  const inferredEffects = inferEffectsFromText(
+    [profile.overallEffect, profile.characteristic, profile.communityFeedback, profile.notes].join("\n")
+  );
+  profile.effects = Array.from(new Set([...profile.effects, ...inferredEffects]));
   profile.aromaFlavor = Array.from(new Set(profile.aromaFlavor));
   profile.medicalApplications = Array.from(new Set(profile.medicalApplications));
 
