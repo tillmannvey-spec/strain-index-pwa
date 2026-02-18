@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#11150f">
+  <meta name="theme-color" content="#090909">
   <title>Strain Index</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,54 +13,46 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <div class="ambient"></div>
-  <div class="app-shell">
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">Personal PWA</p>
-        <h1>Strain Index</h1>
-      </div>
-      <button type="button" id="quickAddBtn" class="fab" aria-label="Neuer Eintrag">
+  <div class="app">
+    <header class="header">
+      <h1>STRAIN<span>INDEX</span></h1>
+      <button type="button" id="quickAddBtn" class="add-btn" aria-label="Neuer Eintrag">
         <span class="material-symbols-outlined">add</span>
       </button>
     </header>
 
-    <main class="mobile-pages">
-      <section id="listView" data-view="list" class="page-view">
-        <section class="search-row">
-          <input id="searchInput" type="search" placeholder="Strain suchen...">
-          <button type="button" id="toggleFilterBtn" class="ghost-btn icon-btn" aria-label="Filter anzeigen" aria-expanded="false">
-            <span class="material-symbols-outlined">tune</span>
-          </button>
-        </section>
+    <div class="controls">
+      <div class="search-row">
+        <input id="searchInput" type="search" placeholder="Suchen…">
+        <button type="button" id="toggleFilterBtn" class="icon-btn" aria-label="Filter" aria-expanded="false">
+          <span class="material-symbols-outlined">tune</span>
+        </button>
+      </div>
+      <div id="filterPanel" class="filter-panel" hidden>
+        <select id="manufacturerFilter"></select>
+        <select id="effectFilter"></select>
+        <select id="medicalFilter"></select>
+      </div>
+    </div>
 
-        <section id="filterPanel" class="toolbar" hidden>
-          <select id="manufacturerFilter"></select>
-          <select id="effectFilter"></select>
-          <select id="medicalFilter"></select>
-        </section>
+    <div class="grid-header">
+      <span id="strainCount" class="count">0 Strains</span>
+    </div>
 
-        <div class="list-head">
-          <h2>Strains</h2>
-          <span id="strainCount" class="counter">0 Strains</span>
-        </div>
-
-        <section class="panel list-panel">
-          <div id="strainGrid" class="strain-grid"></div>
-        </section>
-      </section>
-
-      <section id="detailView" data-view="detail" class="page-view" hidden>
-        <div class="detail-head">
-          <button type="button" id="backToListBtn" class="ghost-btn small">
-            <span class="material-symbols-outlined">arrow_back</span>
-            Zurück
-          </button>
-        </div>
-        <aside id="profilePanel" class="panel profile-column"></aside>
-      </section>
-    </main>
+    <div id="strainGrid" class="grid"></div>
   </div>
+
+  <!-- Detail Overlay -->
+  <dialog id="detailDialog" class="detail-dialog">
+    <div class="detail-inner">
+      <header class="detail-bar">
+        <button type="button" class="close-btn" data-close-dialog aria-label="Schliessen">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+      <div id="detailContent" class="detail-content"></div>
+    </div>
+  </dialog>
 
   <dialog id="quickActionsDialog" class="modal compact-modal">
     <div class="modal-form">

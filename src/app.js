@@ -1,6 +1,5 @@
 import { filterStrains, uniqueValues } from "./logic/filter.js";
 import { buildImportReviewRows } from "./logic/import-review.js";
-import { DEFAULT_VIEW, resolveViewFromHash, toViewHash } from "./logic/navigation.js";
 import { parseStrainText } from "./logic/parse.js";
 import { parseWithLlm } from "./llm.js";
 import { loadSettings, loadStrains, saveSettings, saveStrains } from "./storage.js";
@@ -16,7 +15,6 @@ const state = {
   },
   selectedId: null,
   editingId: null,
-  currentView: DEFAULT_VIEW,
   pendingImportedProfile: null,
   pendingLocalProfile: null,
   pendingLlmProfile: null,
@@ -25,10 +23,7 @@ const state = {
 };
 
 const dom = {
-  listView: document.querySelector("#listView"),
-  detailView: document.querySelector("#detailView"),
   grid: document.querySelector("#strainGrid"),
-  profile: document.querySelector("#profilePanel"),
   search: document.querySelector("#searchInput"),
   toggleFilter: document.querySelector("#toggleFilterBtn"),
   filterPanel: document.querySelector("#filterPanel"),
@@ -37,7 +32,8 @@ const dom = {
   medical: document.querySelector("#medicalFilter"),
   count: document.querySelector("#strainCount"),
   quickAddBtn: document.querySelector("#quickAddBtn"),
-  backToListBtn: document.querySelector("#backToListBtn"),
+  detailDialog: document.querySelector("#detailDialog"),
+  detailContent: document.querySelector("#detailContent"),
   quickActionsDialog: document.querySelector("#quickActionsDialog"),
   quickImportBtn: document.querySelector("#quickImportBtn"),
   quickCreateBtn: document.querySelector("#quickCreateBtn"),
@@ -128,7 +124,6 @@ function upsertStrain(profile) {
   if (!normalized.id) {
     normalized.id = slugify(normalized.name);
   }
-
   const index = state.strains.findIndex((strain) => strain.id === normalized.id);
   if (index >= 0) {
     state.strains[index] = normalized;
@@ -148,11 +143,25 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+function getStrainType(strain) {
+  const g = (strain.genetics || "").toLowerCase();
+  if (/\bsativa\b/.test(g)) return "sativa";
+  if (/\bindica\b/.test(g)) return "indica";
+  return "hybrid";
+}
+
+function getStrainTypeLabel(strain) {
+  const type = getStrainType(strain);
+  if (type === "sativa") return "Sativa";
+  if (type === "indica") return "Indica";
+  return "Hybrid";
+}
+
 function buildTagList(values, emptyText) {
   if (!values.length) {
-    return `<span class="chip chip-muted">${escapeHtml(emptyText)}</span>`;
+    return `<span class="tag tag-muted">${escapeHtml(emptyText)}</span>`;
   }
-  return values.map((value) => `<span class="chip">${escapeHtml(value)}</span>`).join("");
+  return values.map((value) => `<span class="tag">${escapeHtml(value)}</span>`).join("");
 }
 
 function renderText(value, fallback = "k.A.") {
@@ -181,7 +190,6 @@ function renderFilterOptions() {
       .join("")}`;
     select.value = values.includes(current) ? current : "";
   };
-
   setOptions(dom.manufacturer, uniqueValues(state.strains, "manufacturer"), "Alle Hersteller");
   setOptions(dom.effect, uniqueValues(state.strains, "effects"), "Alle Wirkungen");
   setOptions(dom.medical, uniqueValues(state.strains, "medicalApplications"), "Alle medizinischen Wirkungen");
@@ -196,27 +204,16 @@ function currentFilteredStrains() {
   return filterStrains(state.strains, state.filters);
 }
 
-function renderCard(strain, isActive) {
-  const image = strain.image
-    ? `<img src="${strain.image}" alt="${escapeHtml(strain.name)}" class="card-image">`
-    : `<div class="card-image card-image-fallback">${escapeHtml(strain.name.slice(0, 2).toUpperCase())}</div>`;
-  const terpenes = strain.terpenes
-    .slice(0, 3)
-    .map((item) => item.name)
-    .join(" • ");
+function renderCard(strain) {
+  const type = getStrainType(strain);
+  const label = getStrainTypeLabel(strain);
+  const isActive = strain.id === state.selectedId;
   return `
-    <article class="strain-card ${isActive ? "strain-card-active" : ""}" data-id="${escapeHtml(strain.id)}">
-      ${image}
-      <div class="card-body">
-        <div class="card-title-row">
-          <h3>${escapeHtml(strain.name)}</h3>
-          <span>${escapeHtml(strain.thc || "n/a")}</span>
-        </div>
-        <p class="card-subtitle">${escapeHtml(strain.manufacturer || "Unbekannter Hersteller")}</p>
-        <p class="card-subtitle">${escapeHtml(terpenes || "Terpenprofil folgt")}</p>
-        <div class="chip-row">
-          ${buildTagList(strain.effects.slice(0, 2), "Keine Wirkung")}
-        </div>
+    <article class="card${isActive ? " card-active" : ""}" data-id="${escapeHtml(strain.id)}" data-type="${type}">
+      <div class="card-name">${escapeHtml(strain.name)}</div>
+      <div class="card-meta">
+        <span class="card-thc">${escapeHtml(strain.thc || "—")}</span>
+        <span class="card-type" data-type="${type}">${escapeHtml(label)}</span>
       </div>
     </article>
   `;
@@ -229,29 +226,27 @@ function renderStrains() {
     dom.grid.innerHTML = `<p class="empty-state">Keine Treffer. Passe Filter oder Suche an.</p>`;
     return;
   }
-  dom.grid.innerHTML = filtered.map((strain) => renderCard(strain, strain.id === state.selectedId)).join("");
+  dom.grid.innerHTML = filtered.map((strain) => renderCard(strain)).join("");
 }
 
 function findSelectedStrain() {
-  if (!state.selectedId) {
-    return null;
-  }
+  if (!state.selectedId) return null;
   return state.strains.find((strain) => strain.id === state.selectedId) || null;
 }
 
 function renderTerpeneTable(terpenes) {
   if (!terpenes.length) {
-    return `<p class="empty-state">Keine Terpene hinterlegt.</p>`;
+    return `<p>Keine Terpene hinterlegt.</p>`;
   }
-  return `<div class="terpene-table">${terpenes
+  return `<div class="terpene-list">${terpenes
     .map(
       (item) => `
-        <div class="terpene-row">
-          <div>
+        <div>
+          <div class="terpene-item">
             <strong>${escapeHtml(item.name)}</strong>
             <span>${escapeHtml(item.amount || "k.A.")}</span>
           </div>
-          <p>${escapeHtml(item.effects.join(", ") || "Keine Wirkungseinordnung")}</p>
+          ${item.effects.length ? `<div class="terpene-effects">${escapeHtml(item.effects.join(", "))}</div>` : ""}
         </div>
       `
     )
@@ -261,102 +256,77 @@ function renderTerpeneTable(terpenes) {
 function renderProfile() {
   const strain = findSelectedStrain();
   if (!strain) {
-    dom.profile.innerHTML = `
-      <div class="profile-placeholder">
-        <h2>Keine Detailansicht</h2>
-        <p>Waehle einen Strain aus der Liste aus.</p>
-      </div>
-    `;
+    dom.detailContent.innerHTML = "";
     return;
   }
 
-  dom.profile.innerHTML = `
-    <header class="profile-header">
-      <div>
-        <p class="eyebrow">Strain-Profil</p>
-        <h2>${escapeHtml(strain.name)}</h2>
-        <p>${escapeHtml(strain.manufacturer || "Unbekannter Hersteller")}</p>
+  const type = getStrainType(strain);
+  const label = getStrainTypeLabel(strain);
+
+  dom.detailContent.innerHTML = `
+    <div class="detail-hero">
+      <span class="detail-type" data-type="${type}">${escapeHtml(label)}</span>
+      <h2 class="detail-name">${escapeHtml(strain.name)}</h2>
+      <div class="detail-subtitle">
+        <span>${escapeHtml(strain.manufacturer || "Unbekannter Hersteller")}</span>
+        <span class="sep">/</span>
+        <span>THC ${escapeHtml(strain.thc || "k.A.")}</span>
+        ${strain.cbd ? `<span class="sep">/</span><span>CBD ${escapeHtml(strain.cbd)}</span>` : ""}
       </div>
-      <div class="profile-actions">
-        <button class="ghost-btn small" data-action="edit">Bearbeiten</button>
-        <button class="ghost-btn small danger" data-action="delete">Loeschen</button>
-      </div>
-    </header>
-    <section class="profile-grid">
-      <div class="info-card">
+    </div>
+    <div class="detail-actions">
+      <button class="ghost-btn small" data-action="edit">Bearbeiten</button>
+      <button class="ghost-btn small danger" data-action="delete">Löschen</button>
+    </div>
+    <div class="detail-sections">
+      <section class="detail-section">
         <h3>Steckbrief</h3>
-        <p><strong>Genetik:</strong> ${escapeHtml(strain.genetics || "k.A.")}</p>
-        <p><strong>THC/CBD:</strong> ${escapeHtml(strain.thc || "k.A.")} / ${escapeHtml(strain.cbd || "k.A.")}</p>
-        <p><strong>Anbau:</strong> ${escapeHtml(strain.cultivation || "k.A.")}</p>
-      </div>
-      <div class="info-card">
+        <dl class="kv-grid">
+          <dt>Genetik</dt><dd>${escapeHtml(strain.genetics || "k.A.")}</dd>
+          <dt>Anbau</dt><dd>${escapeHtml(strain.cultivation || "k.A.")}</dd>
+        </dl>
+      </section>
+      <section class="detail-section">
         <h3>Wirkung</h3>
-        <div class="chip-row">${buildTagList(strain.effects, "Keine Eintraege")}</div>
-        <p><strong>Gesamtwirkung:</strong></p>
-        ${renderText(strain.overallEffect)}
-        <p><strong>Onset & Dauer:</strong></p>
-        ${renderText(strain.onsetDuration)}
-      </div>
-      <div class="info-card">
+        <div class="tag-row">${buildTagList(strain.effects, "Keine Eintraege")}</div>
+        ${strain.overallEffect ? `<p><strong>Gesamtwirkung:</strong></p>${renderText(strain.overallEffect)}` : ""}
+        ${strain.onsetDuration ? `<p><strong>Onset & Dauer:</strong></p>${renderText(strain.onsetDuration)}` : ""}
+      </section>
+      <section class="detail-section">
         <h3>Aroma & Charakteristik</h3>
-        <div class="chip-row">${buildTagList(strain.aromaFlavor, "Keine Eintraege")}</div>
-        <p><strong>Characteristic:</strong></p>
-        ${renderText(strain.characteristic)}
-      </div>
-      <div class="info-card">
+        <div class="tag-row">${buildTagList(strain.aromaFlavor, "Keine Eintraege")}</div>
+        ${strain.characteristic ? renderText(strain.characteristic) : ""}
+      </section>
+      <section class="detail-section">
         <h3>Medizinische Anwendungen</h3>
         ${renderBulletList(strain.medicalApplications)}
-      </div>
-      <div class="info-card">
+      </section>
+      <section class="detail-section">
         <h3>Terpenprofil</h3>
         ${renderTerpeneTable(strain.terpenes)}
-      </div>
-      <div class="info-card">
+      </section>
+      <section class="detail-section">
         <h3>Community-Feedback</h3>
         ${renderText(strain.communityFeedback, "Noch kein Feedback.")}
-      </div>
-      <div class="info-card">
+      </section>
+      <section class="detail-section">
         <h3>Notizen</h3>
         ${renderText(strain.notes, "Keine Notizen.")}
-      </div>
-    </section>
+      </section>
+    </div>
   `;
 }
 
-function renderView() {
-  const sections = {
-    list: dom.listView,
-    detail: dom.detailView
-  };
-
-  Object.entries(sections).forEach(([name, section]) => {
-    section.hidden = name !== state.currentView;
-  });
-}
-
-function setView(view, updateHash = true) {
-  const resolved = resolveViewFromHash(view);
-  if (resolved === "detail" && !findSelectedStrain()) {
-    state.currentView = "list";
-  } else {
-    state.currentView = resolved;
-  }
-
-  renderView();
-
-  if (updateHash) {
-    const targetHash = toViewHash(state.currentView);
-    if (window.location.hash !== targetHash) {
-      window.location.hash = targetHash;
-    }
-  }
+function openDetailDialog(strainId) {
+  state.selectedId = strainId;
+  renderProfile();
+  renderStrains();
+  dom.detailDialog.showModal();
 }
 
 function renderAll() {
   renderFilterOptions();
   renderStrains();
-  renderProfile();
-  renderView();
 }
 
 function resetStrainForm() {
@@ -458,7 +428,6 @@ function mergeProfiles(base, override) {
   const normalizedBase = normalizeProfile(base);
   const normalizedOverride = normalizeProfile(override);
   const merged = { ...normalizedBase };
-
   Object.keys(merged).forEach((key) => {
     const next = normalizedOverride[key];
     if (Array.isArray(next)) {
@@ -475,12 +444,8 @@ function mergeProfiles(base, override) {
 }
 
 function confidenceClass(confidence) {
-  if (confidence === "Hoch") {
-    return "high";
-  }
-  if (confidence === "Mittel") {
-    return "medium";
-  }
+  if (confidence === "Hoch") return "high";
+  if (confidence === "Mittel") return "medium";
   return "low";
 }
 
@@ -505,9 +470,7 @@ function renderImportReview() {
         <article class="import-row">
           <div class="import-row-head">
             <h4>${escapeHtml(row.label)}</h4>
-            <span class="meta-chip ${confidenceClass(row.confidence)}">${escapeHtml(row.source)} · ${escapeHtml(
-              row.confidence
-            )}</span>
+            <span class="meta-chip ${confidenceClass(row.confidence)}">${escapeHtml(row.source)} · ${escapeHtml(row.confidence)}</span>
           </div>
           <p class="import-value">${escapeHtml(row.value)}</p>
           <p class="import-diff">${localDiff}<br>${llmDiff}</p>
@@ -563,13 +526,9 @@ async function handleImport(event) {
 }
 
 function handleCardSelection(event) {
-  const card = event.target.closest(".strain-card");
-  if (!card) {
-    return;
-  }
-  state.selectedId = card.dataset.id;
-  renderAll();
-  setView("detail");
+  const card = event.target.closest(".card");
+  if (!card) return;
+  openDetailDialog(card.dataset.id);
 }
 
 function autoGrowTextarea(textarea) {
@@ -605,31 +564,24 @@ function wireEvents() {
 
   dom.grid.addEventListener("click", handleCardSelection);
 
-  dom.profile.addEventListener("click", (event) => {
+  dom.detailContent.addEventListener("click", (event) => {
     const action = event.target.closest("[data-action]")?.dataset.action;
-    if (!action) {
-      return;
-    }
+    if (!action) return;
     const strain = findSelectedStrain();
-    if (!strain) {
-      return;
-    }
+    if (!strain) return;
     if (action === "edit") {
+      closeDialog(dom.detailDialog);
       openStrainDialog(strain);
       return;
     }
     if (action === "delete") {
       const confirmDelete = confirm(`Strain "${strain.name}" wirklich loeschen?`);
-      if (!confirmDelete) {
-        return;
-      }
+      if (!confirmDelete) return;
       state.strains = state.strains.filter((item) => item.id !== strain.id);
       saveStrains(state.strains);
-      state.selectedId = state.strains[0]?.id || null;
+      state.selectedId = null;
+      closeDialog(dom.detailDialog);
       renderAll();
-      if (!state.selectedId) {
-        setView("list");
-      }
     }
   });
 
@@ -648,16 +600,10 @@ function wireEvents() {
     syncAutoGrow(dom.importDialog);
   });
 
-  dom.backToListBtn.addEventListener("click", () => setView("list"));
-
-  window.addEventListener("hashchange", () => setView(resolveViewFromHash(window.location.hash), false));
-
   dom.addTerpeneBtn.addEventListener("click", () => addTerpeneRow());
   dom.terpeneRows.addEventListener("click", (event) => {
     const removeBtn = event.target.closest("[data-remove-terpene]");
-    if (!removeBtn) {
-      return;
-    }
+    if (!removeBtn) return;
     removeBtn.closest(".terpene-input-row").remove();
     if (!dom.terpeneRows.querySelector(".terpene-input-row")) {
       addTerpeneRow();
@@ -666,9 +612,7 @@ function wireEvents() {
 
   dom.imageInput.addEventListener("change", async (event) => {
     const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
+    if (!file) return;
     const dataUrl = await new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result);
@@ -691,7 +635,6 @@ function wireEvents() {
     state.selectedId = savedId;
     closeDialog(dom.strainDialog);
     renderAll();
-    setView("detail");
   });
 
   dom.importForm.addEventListener("submit", handleImport);
@@ -740,9 +683,7 @@ function renderSettings() {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js").catch(() => {
-      // Keep running without service worker.
-    });
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
   }
 }
 
@@ -750,14 +691,7 @@ function init() {
   wireEvents();
   renderSettings();
   setFilterPanelVisible(false);
-  state.selectedId = state.strains[0]?.id || null;
-  state.currentView = resolveViewFromHash(window.location.hash);
   renderAll();
-  if (!window.location.hash) {
-    setView(DEFAULT_VIEW);
-  } else {
-    renderView();
-  }
   syncAutoGrow(document);
   registerServiceWorker();
 }
