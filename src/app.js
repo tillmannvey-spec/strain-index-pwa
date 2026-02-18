@@ -1,4 +1,5 @@
 import { filterStrains, uniqueValues } from "./logic/filter.js";
+import { buildImportReviewRows } from "./logic/import-review.js";
 import { DEFAULT_VIEW, resolveViewFromHash, toViewHash } from "./logic/navigation.js";
 import { parseStrainText } from "./logic/parse.js";
 import { parseWithLlm } from "./llm.js";
@@ -15,15 +16,17 @@ const state = {
   },
   selectedId: null,
   editingId: null,
-  currentView: DEFAULT_VIEW
+  currentView: DEFAULT_VIEW,
+  pendingImportedProfile: null,
+  pendingLocalProfile: null,
+  pendingLlmProfile: null,
+  usedLlmImport: false,
+  importSource: ""
 };
 
 const dom = {
-  dashboardView: document.querySelector("#dashboardView"),
-  strainsView: document.querySelector("#strainsView"),
-  profileView: document.querySelector("#profileView"),
-  navButtons: Array.from(document.querySelectorAll("[data-nav-view]")),
-  dashboardGrid: document.querySelector("#dashboardGrid"),
+  listView: document.querySelector("#listView"),
+  detailView: document.querySelector("#detailView"),
   grid: document.querySelector("#strainGrid"),
   profile: document.querySelector("#profilePanel"),
   search: document.querySelector("#searchInput"),
@@ -33,10 +36,17 @@ const dom = {
   effect: document.querySelector("#effectFilter"),
   medical: document.querySelector("#medicalFilter"),
   count: document.querySelector("#strainCount"),
-  addButton: document.querySelector("#addStrainBtn"),
-  importButton: document.querySelector("#importBtn"),
+  quickAddBtn: document.querySelector("#quickAddBtn"),
+  backToListBtn: document.querySelector("#backToListBtn"),
+  quickActionsDialog: document.querySelector("#quickActionsDialog"),
+  quickImportBtn: document.querySelector("#quickImportBtn"),
+  quickCreateBtn: document.querySelector("#quickCreateBtn"),
   strainDialog: document.querySelector("#strainDialog"),
   importDialog: document.querySelector("#importDialog"),
+  importReviewDialog: document.querySelector("#importReviewDialog"),
+  importReviewSource: document.querySelector("#importReviewSource"),
+  importReviewContent: document.querySelector("#importReviewContent"),
+  importReviewEditBtn: document.querySelector("#importReviewEditBtn"),
   strainForm: document.querySelector("#strainForm"),
   importForm: document.querySelector("#importForm"),
   importText: document.querySelector("#importText"),
@@ -61,7 +71,8 @@ function normalizeArray(value) {
     return [];
   }
   return String(value)
-    .split(",")
+    .replace(/[•∙]/g, ",")
+    .split(/[\n,;]+/)
     .map((entry) => entry.trim())
     .filter(Boolean);
 }
@@ -144,6 +155,24 @@ function buildTagList(values, emptyText) {
   return values.map((value) => `<span class="chip">${escapeHtml(value)}</span>`).join("");
 }
 
+function renderText(value, fallback = "k.A.") {
+  const text = String(value || "").trim();
+  if (!text) {
+    return `<p>${escapeHtml(fallback)}</p>`;
+  }
+  return text
+    .split(/\n+/)
+    .map((line) => `<p>${escapeHtml(line)}</p>`)
+    .join("");
+}
+
+function renderBulletList(values, fallback = "Keine Eintraege") {
+  if (!values.length) {
+    return `<p>${escapeHtml(fallback)}</p>`;
+  }
+  return `<ul>${values.map((value) => `<li>${escapeHtml(value)}</li>`).join("")}</ul>`;
+}
+
 function renderFilterOptions() {
   const setOptions = (select, values, label) => {
     const current = select.value;
@@ -171,7 +200,10 @@ function renderCard(strain, isActive) {
   const image = strain.image
     ? `<img src="${strain.image}" alt="${escapeHtml(strain.name)}" class="card-image">`
     : `<div class="card-image card-image-fallback">${escapeHtml(strain.name.slice(0, 2).toUpperCase())}</div>`;
-  const terpenes = strain.terpenes.slice(0, 3).map((item) => item.name).join(" • ");
+  const terpenes = strain.terpenes
+    .slice(0, 3)
+    .map((item) => item.name)
+    .join(" • ");
   return `
     <article class="strain-card ${isActive ? "strain-card-active" : ""}" data-id="${escapeHtml(strain.id)}">
       ${image}
@@ -190,27 +222,14 @@ function renderCard(strain, isActive) {
   `;
 }
 
-function renderDashboard() {
-  const filtered = currentFilteredStrains();
-  dom.count.textContent = `${filtered.length} Strains`;
-  if (!filtered.length) {
-    dom.dashboardGrid.innerHTML = `<p class="empty-state">Keine Treffer. Passe Filter oder Suche an.</p>`;
-    return;
-  }
-  dom.dashboardGrid.innerHTML = filtered
-    .map((strain) => renderCard(strain, strain.id === state.selectedId))
-    .join("");
-}
-
 function renderStrains() {
   const filtered = currentFilteredStrains();
+  dom.count.textContent = `${filtered.length} Strains`;
   if (!filtered.length) {
     dom.grid.innerHTML = `<p class="empty-state">Keine Treffer. Passe Filter oder Suche an.</p>`;
     return;
   }
-  dom.grid.innerHTML = filtered
-    .map((strain) => renderCard(strain, strain.id === state.selectedId))
-    .join("");
+  dom.grid.innerHTML = filtered.map((strain) => renderCard(strain, strain.id === state.selectedId)).join("");
 }
 
 function findSelectedStrain() {
@@ -244,8 +263,8 @@ function renderProfile() {
   if (!strain) {
     dom.profile.innerHTML = `
       <div class="profile-placeholder">
-        <h2>Profilansicht</h2>
-        <p>Waehle im Dashboard oder in Strains einen Strain aus.</p>
+        <h2>Keine Detailansicht</h2>
+        <p>Waehle einen Strain aus der Liste aus.</p>
       </div>
     `;
     return;
@@ -273,17 +292,20 @@ function renderProfile() {
       <div class="info-card">
         <h3>Wirkung</h3>
         <div class="chip-row">${buildTagList(strain.effects, "Keine Eintraege")}</div>
-        <p><strong>Gesamtwirkung:</strong> ${escapeHtml(strain.overallEffect || "k.A.")}</p>
-        <p><strong>Onset & Dauer:</strong> ${escapeHtml(strain.onsetDuration || "k.A.")}</p>
+        <p><strong>Gesamtwirkung:</strong></p>
+        ${renderText(strain.overallEffect)}
+        <p><strong>Onset & Dauer:</strong></p>
+        ${renderText(strain.onsetDuration)}
       </div>
       <div class="info-card">
         <h3>Aroma & Charakteristik</h3>
         <div class="chip-row">${buildTagList(strain.aromaFlavor, "Keine Eintraege")}</div>
-        <p><strong>Characteristic:</strong> ${escapeHtml(strain.characteristic || "k.A.")}</p>
+        <p><strong>Characteristic:</strong></p>
+        ${renderText(strain.characteristic)}
       </div>
       <div class="info-card">
         <h3>Medizinische Anwendungen</h3>
-        <div class="chip-row">${buildTagList(strain.medicalApplications, "Keine Eintraege")}</div>
+        ${renderBulletList(strain.medicalApplications)}
       </div>
       <div class="info-card">
         <h3>Terpenprofil</h3>
@@ -291,7 +313,11 @@ function renderProfile() {
       </div>
       <div class="info-card">
         <h3>Community-Feedback</h3>
-        <p>${escapeHtml(strain.communityFeedback || "Noch kein Feedback.")}</p>
+        ${renderText(strain.communityFeedback, "Noch kein Feedback.")}
+      </div>
+      <div class="info-card">
+        <h3>Notizen</h3>
+        ${renderText(strain.notes, "Keine Notizen.")}
       </div>
     </section>
   `;
@@ -299,27 +325,27 @@ function renderProfile() {
 
 function renderView() {
   const sections = {
-    dashboard: dom.dashboardView,
-    strains: dom.strainsView,
-    profile: dom.profileView
+    list: dom.listView,
+    detail: dom.detailView
   };
 
   Object.entries(sections).forEach(([name, section]) => {
     section.hidden = name !== state.currentView;
   });
-
-  dom.navButtons.forEach((button) => {
-    button.classList.toggle("active", button.dataset.navView === state.currentView);
-  });
 }
 
 function setView(view, updateHash = true) {
   const resolved = resolveViewFromHash(view);
-  state.currentView = resolved;
+  if (resolved === "detail" && !findSelectedStrain()) {
+    state.currentView = "list";
+  } else {
+    state.currentView = resolved;
+  }
+
   renderView();
 
   if (updateHash) {
-    const targetHash = toViewHash(resolved);
+    const targetHash = toViewHash(state.currentView);
     if (window.location.hash !== targetHash) {
       window.location.hash = targetHash;
     }
@@ -328,7 +354,6 @@ function setView(view, updateHash = true) {
 
 function renderAll() {
   renderFilterOptions();
-  renderDashboard();
   renderStrains();
   renderProfile();
   renderView();
@@ -342,6 +367,7 @@ function resetStrainForm() {
   dom.imagePreview.classList.add("hidden");
   state.editingId = null;
   addTerpeneRow();
+  syncAutoGrow(dom.strainForm);
 }
 
 function addTerpeneRow(value = { name: "", amount: "", effects: [] }) {
@@ -368,12 +394,12 @@ function openStrainDialog(profile = null) {
     dom.strainForm.elements.thc.value = profile.thc;
     dom.strainForm.elements.cbd.value = profile.cbd;
     dom.strainForm.elements.cultivation.value = profile.cultivation;
-    dom.strainForm.elements.effects.value = profile.effects.join(", ");
-    dom.strainForm.elements.aromaFlavor.value = profile.aromaFlavor.join(", ");
+    dom.strainForm.elements.effects.value = profile.effects.join("\n");
+    dom.strainForm.elements.aromaFlavor.value = profile.aromaFlavor.join("\n");
     dom.strainForm.elements.overallEffect.value = profile.overallEffect;
     dom.strainForm.elements.onsetDuration.value = profile.onsetDuration;
     dom.strainForm.elements.characteristic.value = profile.characteristic;
-    dom.strainForm.elements.medicalApplications.value = profile.medicalApplications.join(", ");
+    dom.strainForm.elements.medicalApplications.value = profile.medicalApplications.join("\n");
     dom.strainForm.elements.communityFeedback.value = profile.communityFeedback;
     dom.strainForm.elements.notes.value = profile.notes;
     dom.imageValue.value = profile.image || "";
@@ -389,10 +415,11 @@ function openStrainDialog(profile = null) {
     }
   }
   dom.strainDialog.showModal();
+  syncAutoGrow(dom.strainForm);
 }
 
 function closeDialog(dialog) {
-  if (dialog.open) {
+  if (dialog?.open) {
     dialog.close();
   }
 }
@@ -447,6 +474,49 @@ function mergeProfiles(base, override) {
   return merged;
 }
 
+function confidenceClass(confidence) {
+  if (confidence === "Hoch") {
+    return "high";
+  }
+  if (confidence === "Mittel") {
+    return "medium";
+  }
+  return "low";
+}
+
+function renderImportReview() {
+  const rows = buildImportReviewRows(
+    state.pendingLocalProfile || {},
+    state.pendingLlmProfile || {},
+    state.pendingImportedProfile || {},
+    state.usedLlmImport
+  );
+
+  if (!rows.length) {
+    dom.importReviewContent.innerHTML = `<p class="empty-state">Keine auswertbaren Felder erkannt.</p>`;
+    return;
+  }
+
+  dom.importReviewContent.innerHTML = rows
+    .map((row) => {
+      const localDiff = row.localValue ? `Lokal: ${escapeHtml(row.localValue)}` : "Lokal: -";
+      const llmDiff = state.usedLlmImport ? `Gemini: ${escapeHtml(row.llmValue || "-")}` : "Gemini: deaktiviert";
+      return `
+        <article class="import-row">
+          <div class="import-row-head">
+            <h4>${escapeHtml(row.label)}</h4>
+            <span class="meta-chip ${confidenceClass(row.confidence)}">${escapeHtml(row.source)} · ${escapeHtml(
+              row.confidence
+            )}</span>
+          </div>
+          <p class="import-value">${escapeHtml(row.value)}</p>
+          <p class="import-diff">${localDiff}<br>${llmDiff}</p>
+        </article>
+      `;
+    })
+    .join("");
+}
+
 async function handleImport(event) {
   event.preventDefault();
   const text = dom.importText.value.trim();
@@ -459,25 +529,37 @@ async function handleImport(event) {
   dom.importStatus.textContent = "Analysiere Text...";
   dom.importStatus.dataset.variant = "working";
 
-  let profile = parseStrainText(text);
+  const localProfile = normalizeProfile(parseStrainText(text));
+  let llmProfile = null;
+  let profile = localProfile;
+  let source = "Lokaler Parser";
+  let usedLlm = false;
 
   if (state.settings.useLlmImport) {
     try {
-      const llmProfile = await parseWithLlm(text, state.settings);
+      llmProfile = normalizeProfile(await parseWithLlm(text, state.settings));
       profile = mergeProfiles(profile, llmProfile);
-      dom.importStatus.textContent = "Gemini-Import erfolgreich. Bitte kurz pruefen und speichern.";
+      source = "Lokaler Parser + Gemini";
+      usedLlm = true;
+      dom.importStatus.textContent = "Import analysiert. Bitte Review pruefen.";
       dom.importStatus.dataset.variant = "success";
     } catch (error) {
       dom.importStatus.textContent = `${error.message} Fallback auf lokalen Parser genutzt.`;
       dom.importStatus.dataset.variant = "error";
     }
   } else {
-    dom.importStatus.textContent = "Lokaler Parser genutzt. Bitte Daten vor dem Speichern pruefen.";
+    dom.importStatus.textContent = "Lokaler Parser genutzt. Bitte Review pruefen.";
     dom.importStatus.dataset.variant = "success";
   }
 
-  closeDialog(dom.importDialog);
-  openStrainDialog(normalizeProfile(profile));
+  state.pendingImportedProfile = normalizeProfile(profile);
+  state.pendingLocalProfile = localProfile;
+  state.pendingLlmProfile = llmProfile;
+  state.usedLlmImport = usedLlm;
+  state.importSource = source;
+  dom.importReviewSource.textContent = `Quelle: ${source}`;
+  renderImportReview();
+  dom.importReviewDialog.showModal();
 }
 
 function handleCardSelection(event) {
@@ -487,28 +569,33 @@ function handleCardSelection(event) {
   }
   state.selectedId = card.dataset.id;
   renderAll();
-  setView("profile");
+  setView("detail");
+}
+
+function autoGrowTextarea(textarea) {
+  textarea.style.height = "auto";
+  textarea.style.height = `${Math.max(textarea.scrollHeight, 44)}px`;
+}
+
+function syncAutoGrow(root = document) {
+  root.querySelectorAll("textarea[data-autogrow]").forEach((textarea) => autoGrowTextarea(textarea));
 }
 
 function wireEvents() {
   dom.search.addEventListener("input", (event) => {
     state.filters.search = event.target.value;
-    renderDashboard();
     renderStrains();
   });
   dom.manufacturer.addEventListener("change", (event) => {
     state.filters.manufacturer = event.target.value;
-    renderDashboard();
     renderStrains();
   });
   dom.effect.addEventListener("change", (event) => {
     state.filters.effect = event.target.value;
-    renderDashboard();
     renderStrains();
   });
   dom.medical.addEventListener("change", (event) => {
     state.filters.medical = event.target.value;
-    renderDashboard();
     renderStrains();
   });
 
@@ -516,7 +603,6 @@ function wireEvents() {
     setFilterPanelVisible(dom.filterPanel.hidden);
   });
 
-  dom.dashboardGrid.addEventListener("click", handleCardSelection);
   dom.grid.addEventListener("click", handleCardSelection);
 
   dom.profile.addEventListener("click", (event) => {
@@ -541,19 +627,30 @@ function wireEvents() {
       saveStrains(state.strains);
       state.selectedId = state.strains[0]?.id || null;
       renderAll();
+      if (!state.selectedId) {
+        setView("list");
+      }
     }
   });
 
-  dom.navButtons.forEach((button) => {
-    button.addEventListener("click", () => setView(button.dataset.navView));
+  dom.quickAddBtn.addEventListener("click", () => {
+    dom.quickActionsDialog.showModal();
   });
+
+  dom.quickCreateBtn.addEventListener("click", () => {
+    closeDialog(dom.quickActionsDialog);
+    openStrainDialog();
+  });
+
+  dom.quickImportBtn.addEventListener("click", () => {
+    closeDialog(dom.quickActionsDialog);
+    dom.importDialog.showModal();
+    syncAutoGrow(dom.importDialog);
+  });
+
+  dom.backToListBtn.addEventListener("click", () => setView("list"));
 
   window.addEventListener("hashchange", () => setView(resolveViewFromHash(window.location.hash), false));
-
-  dom.addButton.addEventListener("click", () => openStrainDialog());
-  dom.importButton.addEventListener("click", () => {
-    dom.importDialog.showModal();
-  });
 
   dom.addTerpeneBtn.addEventListener("click", () => addTerpeneRow());
   dom.terpeneRows.addEventListener("click", (event) => {
@@ -594,10 +691,21 @@ function wireEvents() {
     state.selectedId = savedId;
     closeDialog(dom.strainDialog);
     renderAll();
-    setView("profile");
+    setView("detail");
   });
 
   dom.importForm.addEventListener("submit", handleImport);
+
+  dom.importReviewEditBtn.addEventListener("click", () => {
+    const imported = state.pendingImportedProfile;
+    if (!imported) {
+      closeDialog(dom.importReviewDialog);
+      return;
+    }
+    closeDialog(dom.importReviewDialog);
+    closeDialog(dom.importDialog);
+    openStrainDialog(imported);
+  });
 
   dom.saveSettingsBtn.addEventListener("click", () => {
     state.settings = {
@@ -616,6 +724,10 @@ function wireEvents() {
       const dialog = button.closest("dialog");
       closeDialog(dialog);
     });
+  });
+
+  document.querySelectorAll("textarea[data-autogrow]").forEach((textarea) => {
+    textarea.addEventListener("input", () => autoGrowTextarea(textarea));
   });
 }
 
@@ -646,6 +758,7 @@ function init() {
   } else {
     renderView();
   }
+  syncAutoGrow(document);
   registerServiceWorker();
 }
 

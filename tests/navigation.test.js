@@ -9,14 +9,12 @@ test("resolveViewFromHash returns default for empty or unknown hash", () => {
   assert.equal(resolveViewFromHash("#/unknown"), DEFAULT_VIEW);
 });
 
-test("resolveViewFromHash accepts dashboard strains profile hashes", () => {
-  assert.equal(resolveViewFromHash("#/dashboard"), "dashboard");
-  assert.equal(resolveViewFromHash("#/strains"), "strains");
-  assert.equal(resolveViewFromHash("#/profile"), "profile");
+test("resolveViewFromHash accepts list and detail hashes", () => {
+  assert.equal(resolveViewFromHash("#/list"), "list");
+  assert.equal(resolveViewFromHash("#/detail"), "detail");
 });
 
 test("toViewHash always builds canonical hash path", () => {
-  assert.equal(toViewHash("dashboard"), "#/dashboard");
-  assert.equal(toViewHash("strains"), "#/strains");
-  assert.equal(toViewHash("profile"), "#/profile");
+  assert.equal(toViewHash("list"), "#/list");
+  assert.equal(toViewHash("detail"), "#/detail");
 });

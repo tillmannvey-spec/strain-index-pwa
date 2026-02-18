@@ -59,3 +59,44 @@ Freitext: Nur abends nutzen
   assert.equal(result.thc, "");
   assert.deepEqual(result.terpenes, []);
 });
+
+test("parseStrainText handles semi-structured long import text with bullets and sections", () => {
+  const text = `
+HUALA 22/1 CA C47
+Steckbrief
+∙ Hersteller: Four 20 Pharma (Kanada)
+∙ Genetik: Critical Mass × AK-47 (60% Indica / 40% Sativa – Indica-dominanter Hybrid)
+∙ THC/CBD: 20-22% THC / 1% CBD
+∙ Anbau: Unbestrahlt, kanadisch
+Terpenprofil
+Dominante Terpene:
+∙ Beta-Myrcen (süßlich-erdig) – muskelentspannend, beruhigend
+∙ Beta-Caryophyllen (würzig-pfeffrig) – entzündungshemmend, schmerzlindernd
+∙ Alpha-Pinen (frisch, kieferig) – konzentrationsfördernd
+∙ D-Limonen (zitrusfrisch) – stimmungsaufhellend
+Geschmack/Aroma: Holzig, Tabak, Kräuter, Würzig, Süß, Fruchtig
+Wirkungsprofil
+Gesamtwirkung: Körperlich entspannend mit mentaler Klarheit
+Onset & Dauer: Sanfter Einstieg, entfaltet sich innerhalb weniger Minuten
+Medizinische Anwendungen
+∙ Schlafstörungen
+∙ Stress und Angstzustände
+∙ Chronische Schmerzen
+Community-Feedback
+Gesamtbeurteilung: 60% Match für deine Kriterien
+Empfehlung: Eher für Abendkonsum
+`;
+
+  const result = parseStrainText(text);
+
+  assert.equal(result.name, "HUALA 22/1 CA C47");
+  assert.equal(result.manufacturer, "Four 20 Pharma (Kanada)");
+  assert.equal(result.thc, "20-22%");
+  assert.equal(result.cbd, "1%");
+  assert.equal(result.cultivation, "Unbestrahlt, kanadisch");
+  assert.equal(result.terpenes.length, 4);
+  assert.ok(result.aromaFlavor.includes("Holzig"));
+  assert.ok(result.medicalApplications.includes("Schlafstörungen"));
+  assert.match(result.communityFeedback, /60% Match/);
+  assert.match(result.notes, /Eher für Abendkonsum/);
+});

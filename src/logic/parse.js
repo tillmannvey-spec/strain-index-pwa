@@ -1,14 +1,16 @@
-function splitCsv(value) {
+function splitList(value) {
   return String(value || "")
-    .split(",")
+    .replace(/[•∙]/g, ",")
+    .split(/[,\n;]+/)
     .map((item) => item.trim())
     .filter(Boolean);
 }
 
 function normalizeLabel(label) {
-  return label
+  return String(label || "")
     .toLowerCase()
-    .replace(/[^\p{L}\d/& ]/gu, "")
+    .replace(/^-+\s*/u, "")
+    .replace(/[^\p{L}\d/&\- ]/gu, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -19,6 +21,7 @@ function mapField(label) {
     strain: "name",
     "strain name": "name",
     name: "name",
+    steckbrief: "sectionProfile",
     hersteller: "manufacturer",
     breeder: "manufacturer",
     manufacturer: "manufacturer",
@@ -26,14 +29,19 @@ function mapField(label) {
     genetics: "genetics",
     thc: "thc",
     cbd: "cbd",
+    "thc/cbd": "thcCbd",
+    "thc cbd": "thcCbd",
     anbau: "cultivation",
     cultivation: "cultivation",
     terpenprofil: "terpenes",
     terpene: "terpenes",
     terpeneprofil: "terpenes",
+    "dominante terpene": "terpenes",
     wirkungsprofil: "effects",
+    wirkung: "effects",
     effects: "effects",
     "geschmack/aroma": "aromaFlavor",
+    "geschmack aroma": "aromaFlavor",
     aroma: "aromaFlavor",
     geschmack: "aromaFlavor",
     "gesamtwirkung": "overallEffect",
@@ -46,24 +54,83 @@ function mapField(label) {
     medicalapplications: "medicalApplications",
     "community-feedback": "communityFeedback",
     "community feedback": "communityFeedback",
-    communityfeedback: "communityFeedback"
+    communityfeedback: "communityFeedback",
+    empfehlung: "notes"
   };
   return mapping[key] || "";
 }
 
+function normalizeLine(rawLine) {
+  return String(rawLine || "")
+    .replace(/\t/g, " ")
+    .replace(/[–—]/g, "-")
+    .replace(/[✅⚠️]/g, "")
+    .replace(/^\s*[•∙]\s*/u, "- ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isLikelySection(line) {
+  const key = normalizeLabel(line);
+  return [
+    "steckbrief",
+    "terpenprofil",
+    "dominante terpene",
+    "wirkungsprofil",
+    "medizinische anwendungen",
+    "community-feedback",
+    "community feedback"
+  ].includes(key);
+}
+
+function parseThcCbd(value, profile) {
+  const normalized = String(value || "");
+  const thcMatch = normalized.match(/(\d+(?:[.,]\d+)?(?:\s*-\s*\d+(?:[.,]\d+)?)?\s*%?)\s*THC/i);
+  const cbdMatch = normalized.match(/(\d+(?:[.,]\d+)?(?:\s*-\s*\d+(?:[.,]\d+)?)?\s*%?)\s*CBD/i);
+  if (thcMatch) {
+    profile.thc = thcMatch[1].replace(/\s+/g, "");
+  }
+  if (cbdMatch) {
+    profile.cbd = cbdMatch[1].replace(/\s+/g, "");
+  }
+}
+
 function parseTerpeneLine(line) {
-  const match = line.match(/^-?\s*([^(-]+?)\s*(?:\(([^)]+)\))?\s*(?:-\s*(.*))?$/);
-  if (!match) {
+  const clean = String(line || "").replace(/^\-\s*/, "").trim();
+  if (!clean) {
     return null;
   }
-  const name = (match[1] || "").trim();
-  if (!name) {
+
+  let namePart = clean;
+  let tail = "";
+
+  const dashSplit = clean.match(/^(.*?)\s+\-\s+(.+)$/);
+  if (dashSplit) {
+    namePart = dashSplit[1].trim();
+    tail = dashSplit[2].trim();
+  } else {
+    const colonSplit = clean.match(/^(.*?):\s*(.+)$/);
+    if (colonSplit) {
+      namePart = colonSplit[1].trim();
+      tail = colonSplit[2].trim();
+    }
+  }
+
+  let amount = "";
+  const amountMatch = namePart.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+  if (amountMatch) {
+    namePart = amountMatch[1].trim();
+    amount = amountMatch[2].trim();
+  }
+
+  if (!namePart || namePart.length < 2) {
     return null;
   }
+
   return {
-    name,
-    amount: (match[2] || "").trim(),
-    effects: splitCsv((match[3] || "").replace(/\s*;\s*/g, ","))
+    name: namePart,
+    amount,
+    effects: splitList(tail)
   };
 }
 
@@ -94,25 +161,48 @@ export function parseStrainText(text) {
   const profile = createEmptyProfile();
   const lines = String(text || "")
     .split(/\r?\n/)
-    .map((line) => line.trim())
+    .map((line) => normalizeLine(line))
     .filter((line) => line.length > 0);
 
-  let inTerpeneBlock = false;
+  let currentSection = "";
 
   lines.forEach((line) => {
+    if (!profile.name && !line.includes(":") && !line.startsWith("- ") && line.length <= 60) {
+      profile.name = line;
+      return;
+    }
+
+    if (isLikelySection(line) && !line.includes(":")) {
+      currentSection = mapField(line);
+      return;
+    }
+
     const pairMatch = line.match(/^([^:]+):\s*(.*)$/);
     if (pairMatch) {
       const field = mapField(pairMatch[1]);
       const value = (pairMatch[2] || "").trim();
-      inTerpeneBlock = field === "terpenes";
+      if (field && !field.startsWith("section")) {
+        currentSection = field;
+      }
 
       if (!field) {
+        if (currentSection === "communityFeedback") {
+          profile.communityFeedback = profile.communityFeedback
+            ? `${profile.communityFeedback}\n${line}`
+            : line;
+          return;
+        }
         profile.notes = profile.notes ? `${profile.notes}\n${line}` : line;
         return;
       }
 
+      if (field === "thcCbd") {
+        parseThcCbd(value, profile);
+        return;
+      }
+
       if (field === "effects" || field === "aromaFlavor" || field === "medicalApplications") {
-        profile[field] = splitCsv(value);
+        profile[field] = splitList(value);
         return;
       }
 
@@ -127,21 +217,50 @@ export function parseStrainText(text) {
         return;
       }
 
-      profile[field] = value;
+      if (field === "notes") {
+        profile.notes = profile.notes ? `${profile.notes}\n${value}` : value;
+      } else {
+        profile[field] = value;
+      }
       return;
     }
 
-    if (inTerpeneBlock) {
+    if (line.startsWith("- ") && currentSection === "terpenes") {
       const terpene = parseTerpeneLine(line);
       if (terpene) {
         profile.terpenes.push(terpene);
         return;
       }
-      inTerpeneBlock = false;
+    }
+
+    if (line.startsWith("- ") && currentSection === "medicalApplications") {
+      profile.medicalApplications.push(line.replace(/^\-\s*/, "").trim());
+      return;
+    }
+
+    if (line.startsWith("- ") && currentSection === "effects") {
+      profile.effects.push(line.replace(/^\-\s*/, "").trim());
+      return;
+    }
+
+    if (currentSection === "communityFeedback") {
+      profile.communityFeedback = profile.communityFeedback
+        ? `${profile.communityFeedback}\n${line}`
+        : line;
+      return;
+    }
+
+    if (currentSection === "overallEffect") {
+      profile.overallEffect = profile.overallEffect ? `${profile.overallEffect}\n${line}` : line;
+      return;
     }
 
     profile.notes = profile.notes ? `${profile.notes}\n${line}` : line;
   });
+
+  profile.effects = Array.from(new Set(profile.effects));
+  profile.aromaFlavor = Array.from(new Set(profile.aromaFlavor));
+  profile.medicalApplications = Array.from(new Set(profile.medicalApplications));
 
   return profile;
 }

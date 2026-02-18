@@ -15,89 +15,63 @@
 <body>
   <div class="ambient"></div>
   <div class="app-shell">
-    <header class="hero">
+    <header class="topbar">
       <div>
         <p class="eyebrow">Personal PWA</p>
-        <h1>Medical Cannabis Strain Index</h1>
-        <p class="subtitle">Dashboard first. Danach getrennte Seiten fuer Strain-Uebersicht und Profile.</p>
+        <h1>Strain Index</h1>
       </div>
-      <div class="hero-actions">
-        <button class="primary-btn" id="importBtn">Text importieren</button>
-        <button class="primary-btn" id="addStrainBtn">Neuen Strain</button>
-      </div>
+      <button type="button" id="quickAddBtn" class="fab" aria-label="Neuer Eintrag">
+        <span class="material-symbols-outlined">add</span>
+      </button>
     </header>
 
     <main class="mobile-pages">
-      <section id="dashboardView" data-view="dashboard" class="page-view">
-        <div class="page-head">
-          <h2>Dashboard</h2>
-          <span id="strainCount" class="counter">0 Strains</span>
-        </div>
+      <section id="listView" data-view="list" class="page-view">
         <section class="search-row">
           <input id="searchInput" type="search" placeholder="Strain suchen...">
           <button type="button" id="toggleFilterBtn" class="ghost-btn icon-btn" aria-label="Filter anzeigen" aria-expanded="false">
             <span class="material-symbols-outlined">tune</span>
           </button>
         </section>
+
         <section id="filterPanel" class="toolbar" hidden>
           <select id="manufacturerFilter"></select>
           <select id="effectFilter"></select>
           <select id="medicalFilter"></select>
         </section>
-        <section class="panel">
-          <h3>Aktuelle Treffer</h3>
-          <div id="dashboardGrid" class="strain-grid"></div>
-        </section>
-      </section>
 
-      <section id="strainsView" data-view="strains" class="page-view" hidden>
-        <div class="page-head">
+        <div class="list-head">
           <h2>Strains</h2>
-          <p>Gesamte Uebersicht aller gespeicherten Strains</p>
+          <span id="strainCount" class="counter">0 Strains</span>
         </div>
-        <section class="panel">
+
+        <section class="panel list-panel">
           <div id="strainGrid" class="strain-grid"></div>
         </section>
       </section>
 
-      <section id="profileView" data-view="profile" class="page-view" hidden>
-        <div class="page-head">
-          <h2>Profile</h2>
-          <p>Detailansicht eines ausgewaehlten Strains</p>
+      <section id="detailView" data-view="detail" class="page-view" hidden>
+        <div class="detail-head">
+          <button type="button" id="backToListBtn" class="ghost-btn small">
+            <span class="material-symbols-outlined">arrow_back</span>
+            Zurück
+          </button>
         </div>
-
         <aside id="profilePanel" class="panel profile-column"></aside>
-
-        <section class="panel settings-box">
-          <h3>Gemini Import</h3>
-          <label class="checkbox-row">
-            <input type="checkbox" id="settingsUseLlm">
-            <span>Gemini fuer automatische Zuordnung nutzen</span>
-          </label>
-          <label>API Key<input id="settingsApiKey" type="password" placeholder="AIza..."></label>
-          <label>Model<input id="settingsModel" type="text" placeholder="gemini-3-flash-preview"></label>
-          <label>Endpoint<input id="settingsEndpoint" type="url" placeholder="https://generativelanguage.googleapis.com/v1beta"></label>
-          <button type="button" class="ghost-btn small" id="saveSettingsBtn">Import-Einstellungen speichern</button>
-          <p id="importStatus" class="status-line"></p>
-        </section>
       </section>
     </main>
-
-    <nav class="bottom-nav">
-      <button type="button" class="nav-btn active" data-nav-view="dashboard">
-        <span class="material-symbols-outlined">home</span>
-        <span>Dashboard</span>
-      </button>
-      <button type="button" class="nav-btn" data-nav-view="strains">
-        <span class="material-symbols-outlined">deployed_code</span>
-        <span>Strains</span>
-      </button>
-      <button type="button" class="nav-btn" data-nav-view="profile">
-        <span class="material-symbols-outlined">person</span>
-        <span>Profile</span>
-      </button>
-    </nav>
   </div>
+
+  <dialog id="quickActionsDialog" class="modal compact-modal">
+    <div class="modal-form">
+      <header class="modal-header">
+        <h2>Neuer Eintrag</h2>
+        <button type="button" class="ghost-btn small" data-close-dialog>Schliessen</button>
+      </header>
+      <button type="button" class="primary-btn" id="quickImportBtn">Strain importieren</button>
+      <button type="button" class="ghost-btn" id="quickCreateBtn">Strain eingeben</button>
+    </div>
+  </dialog>
 
   <dialog id="strainDialog" class="modal">
     <form id="strainForm" class="modal-form">
@@ -112,14 +86,14 @@
         <label>THC<input name="thc" type="text" placeholder="z.B. 22%"></label>
         <label>CBD<input name="cbd" type="text" placeholder="z.B. 0.7%"></label>
         <label class="full">Anbau<input name="cultivation" type="text" placeholder="z.B. unbestrahlt, Kanada"></label>
-        <label class="full">Wirkungsprofil<input name="effects" type="text" placeholder="Euphorisch, Kreativ"></label>
-        <label class="full">Geschmack/Aroma<input name="aromaFlavor" type="text" placeholder="Beere, Erde"></label>
-        <label class="full">Gesamtwirkung<textarea name="overallEffect" rows="2"></textarea></label>
-        <label>Onset & Dauer<input name="onsetDuration" type="text" placeholder="Onset 8 min / Dauer 3 h"></label>
-        <label>Characteristic<input name="characteristic" type="text"></label>
-        <label class="full">Medizinische Anwendungen<input name="medicalApplications" type="text" placeholder="Schmerz, Stress"></label>
-        <label class="full">Community-Feedback<textarea name="communityFeedback" rows="3"></textarea></label>
-        <label class="full">Notizen<textarea name="notes" rows="3"></textarea></label>
+        <label class="full">Wirkungsprofil<textarea data-autogrow name="effects" rows="2" placeholder="Euphorisch, Kreativ"></textarea></label>
+        <label class="full">Geschmack/Aroma<textarea data-autogrow name="aromaFlavor" rows="2" placeholder="Beere, Erde"></textarea></label>
+        <label class="full">Gesamtwirkung<textarea data-autogrow name="overallEffect" rows="3"></textarea></label>
+        <label class="full">Onset & Dauer<textarea data-autogrow name="onsetDuration" rows="2" placeholder="Onset 8 min / Dauer 3 h"></textarea></label>
+        <label class="full">Characteristic<textarea data-autogrow name="characteristic" rows="3"></textarea></label>
+        <label class="full">Medizinische Anwendungen<textarea data-autogrow name="medicalApplications" rows="3" placeholder="Schmerz, Stress"></textarea></label>
+        <label class="full">Community-Feedback<textarea data-autogrow name="communityFeedback" rows="4"></textarea></label>
+        <label class="full">Notizen<textarea data-autogrow name="notes" rows="4"></textarea></label>
       </div>
 
       <section class="terpene-section">
@@ -152,11 +126,40 @@
       <label>Import-Text
         <textarea id="importText" name="importText" rows="14" placeholder="Freitext oder strukturierter Text..."></textarea>
       </label>
+
+      <details class="settings-box">
+        <summary>Import-Einstellungen</summary>
+        <label class="checkbox-row">
+          <input type="checkbox" id="settingsUseLlm">
+          <span>Gemini fuer automatische Zuordnung nutzen</span>
+        </label>
+        <label>API Key<input id="settingsApiKey" type="password" placeholder="AIza..."></label>
+        <label>Model<input id="settingsModel" type="text" placeholder="gemini-3-flash-preview"></label>
+        <label>Endpoint<input id="settingsEndpoint" type="url" placeholder="https://generativelanguage.googleapis.com/v1beta"></label>
+        <button type="button" class="ghost-btn small" id="saveSettingsBtn">Import-Einstellungen speichern</button>
+      </details>
+      <p id="importStatus" class="status-line"></p>
+
       <footer class="modal-footer">
         <button type="button" class="ghost-btn" data-close-dialog>Abbrechen</button>
         <button type="submit" class="primary-btn">Text analysieren</button>
       </footer>
     </form>
+  </dialog>
+
+  <dialog id="importReviewDialog" class="modal">
+    <div class="modal-form">
+      <header class="modal-header">
+        <h2>Import prüfen</h2>
+        <button type="button" class="ghost-btn small" data-close-dialog>Schliessen</button>
+      </header>
+      <p id="importReviewSource" class="status-line"></p>
+      <div id="importReviewContent" class="import-review-grid"></div>
+      <footer class="modal-footer">
+        <button type="button" class="ghost-btn" data-close-dialog>Abbrechen</button>
+        <button type="button" id="importReviewEditBtn" class="primary-btn">In Editor übernehmen</button>
+      </footer>
+    </div>
   </dialog>
 
   <script type="module" src="./src/app.js"></script>

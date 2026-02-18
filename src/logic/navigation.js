@@ -1,5 +1,5 @@
-export const VIEWS = ["dashboard", "strains", "profile"];
-export const DEFAULT_VIEW = "dashboard";
+export const VIEWS = ["list", "detail"];
+export const DEFAULT_VIEW = "list";
 
 function normalize(raw) {
   return String(raw || "")
