@@ -16,6 +16,42 @@ Regeln:
 - Antworte nur mit JSON ohne Erklaerung
 `.trim();
 
+const RESEARCH_SYSTEM_PROMPT = `
+Du bist ein Medical-Cannabis-Research-Assistent.
+Du recherchierst im Web zu angefragten Strains und lieferst strukturierte Profile.
+
+Antwortformat:
+Gib genau EIN JSON-Objekt zurueck:
+{
+  "profiles": [
+    {
+      "name": "",
+      "manufacturer": "",
+      "genetics": "",
+      "thc": "",
+      "cbd": "",
+      "cultivation": "",
+      "terpenes": [{"name":"","amount":"","effects":[]}],
+      "effects": [],
+      "aromaFlavor": [],
+      "overallEffect": "",
+      "onsetDuration": "",
+      "characteristic": "",
+      "medicalApplications": [],
+      "communityFeedback": "",
+      "notes": ""
+    }
+  ]
+}
+
+Regeln:
+- Ein Profil pro angefragtem Strain, gleiche Reihenfolge wie Anfrage.
+- Wenn Information unklar: leerer String oder leeres Array.
+- Keine Halluzinationen.
+- effects/medicalApplications/aromaFlavor muessen Arrays bleiben.
+- Antworte nur mit JSON.
+`.trim();
+
 function buildGeminiUrl(settings) {
   const endpoint = String(settings.endpoint || "https://generativelanguage.googleapis.com/v1beta").replace(/\/$/, "");
   const model = encodeURIComponent(settings.model || "gemini-3-flash-preview");
@@ -151,4 +187,61 @@ export async function parseWithLlm(importText, settings) {
   } catch (error) {
     throw new Error(`Gemini-JSON ungueltig: ${error.message}`);
   }
+}
+
+export async function researchStrainsWithLlm(strainNames, settings) {
+  if (!settings.apiKey) {
+    throw new Error("Kein API-Key hinterlegt.");
+  }
+
+  const names = Array.isArray(strainNames) ? strainNames.filter(Boolean) : [];
+  if (!names.length) {
+    throw new Error("Keine Strain-Namen uebergeben.");
+  }
+
+  const query = `Recherchiere folgende Strains mit Websuche und liefere strukturierte Profile:\n${names
+    .map((name, index) => `${index + 1}. ${name}`)
+    .join("\n")}`;
+
+  const response = await fetch(buildGeminiUrl(settings), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": settings.apiKey
+    },
+    body: JSON.stringify({
+      systemInstruction: {
+        parts: [{ text: RESEARCH_SYSTEM_PROMPT }]
+      },
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: query }]
+        }
+      ],
+      tools: [{ google_search: {} }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.2
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Gemini-Research fehlgeschlagen (${response.status}): ${message.slice(0, 220)}`);
+  }
+
+  const payload = await response.json();
+  const text = extractOutputText(payload);
+  if (!text) {
+    throw new Error("Gemini-Antwort enthaelt kein auswertbares Research-JSON.");
+  }
+
+  const parsed = parseLlmJson(text);
+  const profiles = Array.isArray(parsed?.profiles) ? parsed.profiles : [];
+  if (!profiles.length) {
+    throw new Error("Gemini-Research enthielt keine Profile.");
+  }
+  return profiles;
 }

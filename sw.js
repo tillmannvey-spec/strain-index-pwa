@@ -1,4 +1,4 @@
-const CACHE_NAME = "strain-index-v2-cache-3";
+const CACHE_NAME = "strain-index-v2-cache-5";
 const ASSETS = [
   "./",
   "./index.html",
@@ -8,10 +8,15 @@ const ASSETS = [
   "./src/storage.js",
   "./src/llm.js",
   "./src/logic/filter.js",
+  "./src/logic/import-review.js",
   "./src/logic/navigation.js",
   "./src/logic/parse.js",
+  "./src/logic/research.js",
   "./icons/icon-192.svg",
-  "./icons/icon-512.svg"
+  "./icons/icon-512.svg",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png",
+  "./icons/apple-touch-icon-180.png"
 ];
 
 self.addEventListener("install", (event) => {

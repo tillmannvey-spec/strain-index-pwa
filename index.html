@@ -3,9 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#090909">
+  <meta name="theme-color" content="#11150f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Can Strain Index">
+  <meta name="format-detection" content="telephone=no">
   <title>Strain Index</title>
   <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon-180.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Sora:wght@500;700;800&display=swap" rel="stylesheet">
@@ -60,9 +67,42 @@
         <h2>Neuer Eintrag</h2>
         <button type="button" class="ghost-btn small" data-close-dialog>Schliessen</button>
       </header>
+      <button type="button" class="ghost-btn" id="quickResearchBtn">Research</button>
       <button type="button" class="primary-btn" id="quickImportBtn">Strain importieren</button>
       <button type="button" class="ghost-btn" id="quickCreateBtn">Strain eingeben</button>
     </div>
+  </dialog>
+
+  <dialog id="researchDialog" class="modal">
+    <form id="researchForm" class="modal-form">
+      <header class="modal-header">
+        <h2>Strain Research</h2>
+        <button type="button" class="ghost-btn small" data-close-dialog>Schliessen</button>
+      </header>
+      <label>Strains (ein Name pro Zeile oder komma-separiert)
+        <textarea id="researchInput" rows="8" placeholder="Blue Dream&#10;Pink Kush"></textarea>
+      </label>
+      <p id="researchStatus" class="status-line"></p>
+      <footer class="modal-footer">
+        <button type="button" class="ghost-btn" data-close-dialog>Abbrechen</button>
+        <button type="submit" class="primary-btn">Research starten</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="researchReviewDialog" class="modal">
+    <form id="researchReviewForm" class="modal-form">
+      <header class="modal-header">
+        <h2>Research Ergebnisse</h2>
+        <button type="button" class="ghost-btn small" data-close-dialog>Schliessen</button>
+      </header>
+      <p class="status-line">Waehle aus, welche Strains angelegt werden sollen.</p>
+      <div id="researchReviewList" class="research-list"></div>
+      <footer class="modal-footer">
+        <button type="button" class="ghost-btn" data-close-dialog>Abbrechen</button>
+        <button type="submit" class="primary-btn">Ausgewaehlte hinzufuegen</button>
+      </footer>
+    </form>
   </dialog>
 
   <dialog id="strainDialog" class="modal">

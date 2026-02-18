@@ -679,6 +679,38 @@ label{
   line-height:1.35;
 }
 
+/* ── Research Review ── */
+.research-list{
+  display:grid;
+  gap:8px;
+}
+
+.research-item{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:10px;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:10px;
+  background:var(--surface);
+}
+
+.research-item input{
+  width:18px;
+  height:18px;
+  margin-top:2px;
+}
+
+.research-item strong{
+  font-size:.9rem;
+}
+
+.research-item p{
+  margin-top:4px;
+  color:var(--text-secondary);
+  font-size:.8rem;
+}
+
 /* ── Utilities ── */
 [hidden]{display:none!important}
 .hidden{display:none}

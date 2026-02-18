@@ -1,7 +1,8 @@
 import { filterStrains, uniqueValues } from "./logic/filter.js";
 import { buildImportReviewRows } from "./logic/import-review.js";
 import { parseStrainText } from "./logic/parse.js";
-import { parseWithLlm } from "./llm.js";
+import { parseResearchInput } from "./logic/research.js";
+import { parseWithLlm, researchStrainsWithLlm } from "./llm.js";
 import { loadSettings, loadStrains, saveSettings, saveStrains } from "./storage.js";
 
 const state = {
@@ -19,6 +20,7 @@ const state = {
   pendingLocalProfile: null,
   pendingLlmProfile: null,
   usedLlmImport: false,
+  pendingResearchProfiles: [],
   importSource: ""
 };
 
@@ -35,8 +37,16 @@ const dom = {
   detailDialog: document.querySelector("#detailDialog"),
   detailContent: document.querySelector("#detailContent"),
   quickActionsDialog: document.querySelector("#quickActionsDialog"),
+  quickResearchBtn: document.querySelector("#quickResearchBtn"),
   quickImportBtn: document.querySelector("#quickImportBtn"),
   quickCreateBtn: document.querySelector("#quickCreateBtn"),
+  researchDialog: document.querySelector("#researchDialog"),
+  researchForm: document.querySelector("#researchForm"),
+  researchInput: document.querySelector("#researchInput"),
+  researchStatus: document.querySelector("#researchStatus"),
+  researchReviewDialog: document.querySelector("#researchReviewDialog"),
+  researchReviewForm: document.querySelector("#researchReviewForm"),
+  researchReviewList: document.querySelector("#researchReviewList"),
   strainDialog: document.querySelector("#strainDialog"),
   importDialog: document.querySelector("#importDialog"),
   importReviewDialog: document.querySelector("#importReviewDialog"),
@@ -480,6 +490,31 @@ function renderImportReview() {
     .join("");
 }
 
+function renderResearchReview() {
+  const profiles = state.pendingResearchProfiles;
+  if (!profiles.length) {
+    dom.researchReviewList.innerHTML = `<p class="empty-state">Keine Profile gefunden.</p>`;
+    return;
+  }
+
+  dom.researchReviewList.innerHTML = profiles
+    .map((profile, index) => {
+      const p = normalizeProfile(profile);
+      return `
+        <label class="research-item">
+          <input type="checkbox" name="researchPick" value="${index}" checked>
+          <div>
+            <strong>${escapeHtml(p.name || `Strain ${index + 1}`)}</strong>
+            <p>${escapeHtml(p.manufacturer || "Hersteller k.A.")}</p>
+            <p>${escapeHtml([p.thc ? `THC ${p.thc}` : "", p.cbd ? `CBD ${p.cbd}` : ""].filter(Boolean).join(" / ") || "THC/CBD k.A.")}</p>
+            <p>${escapeHtml(p.effects.slice(0, 5).join(", ") || "Keine Wirkungsdaten")}</p>
+          </div>
+        </label>
+      `;
+    })
+    .join("");
+}
+
 async function handleImport(event) {
   event.preventDefault();
   const text = dom.importText.value.trim();
@@ -523,6 +558,38 @@ async function handleImport(event) {
   dom.importReviewSource.textContent = `Quelle: ${source}`;
   renderImportReview();
   dom.importReviewDialog.showModal();
+}
+
+async function handleResearch(event) {
+  event.preventDefault();
+  const names = parseResearchInput(dom.researchInput.value);
+  if (!names.length) {
+    dom.researchStatus.textContent = "Bitte mindestens einen Strain-Namen eingeben.";
+    dom.researchStatus.dataset.variant = "error";
+    return;
+  }
+
+  dom.researchStatus.textContent = "Starte Gemini Research...";
+  dom.researchStatus.dataset.variant = "working";
+
+  try {
+    const researched = await researchStrainsWithLlm(names, state.settings);
+    state.pendingResearchProfiles = researched.map((profile, index) => {
+      const normalized = normalizeProfile(profile);
+      if (!normalized.name) {
+        normalized.name = names[index] || "";
+      }
+      return normalized;
+    });
+    dom.researchStatus.textContent = `${state.pendingResearchProfiles.length} Profile gefunden.`;
+    dom.researchStatus.dataset.variant = "success";
+    renderResearchReview();
+    closeDialog(dom.researchDialog);
+    dom.researchReviewDialog.showModal();
+  } catch (error) {
+    dom.researchStatus.textContent = error.message;
+    dom.researchStatus.dataset.variant = "error";
+  }
 }
 
 function handleCardSelection(event) {
@@ -594,6 +661,14 @@ function wireEvents() {
     openStrainDialog();
   });
 
+  dom.quickResearchBtn.addEventListener("click", () => {
+    closeDialog(dom.quickActionsDialog);
+    dom.researchStatus.textContent = "";
+    dom.researchStatus.dataset.variant = "";
+    dom.researchInput.value = "";
+    dom.researchDialog.showModal();
+  });
+
   dom.quickImportBtn.addEventListener("click", () => {
     closeDialog(dom.quickActionsDialog);
     dom.importDialog.showModal();
@@ -638,6 +713,34 @@ function wireEvents() {
   });
 
   dom.importForm.addEventListener("submit", handleImport);
+  dom.researchForm.addEventListener("submit", handleResearch);
+
+  dom.researchReviewForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const picks = Array.from(dom.researchReviewForm.querySelectorAll("input[name='researchPick']:checked")).map((el) =>
+      Number(el.value)
+    );
+    if (!picks.length) {
+      alert("Bitte mindestens einen Strain auswaehlen.");
+      return;
+    }
+
+    let lastId = null;
+    picks.forEach((index) => {
+      const profile = state.pendingResearchProfiles[index];
+      if (!profile) {
+        return;
+      }
+      lastId = upsertStrain(profile);
+    });
+    state.selectedId = lastId;
+    saveStrains(state.strains);
+    closeDialog(dom.researchReviewDialog);
+    renderAll();
+    if (lastId) {
+      openDetailDialog(lastId);
+    }
+  });
 
   dom.importReviewEditBtn.addEventListener("click", () => {
     const imported = state.pendingImportedProfile;
